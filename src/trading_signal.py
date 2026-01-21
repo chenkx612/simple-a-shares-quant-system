@@ -4,8 +4,12 @@ from .backtest import BacktestEngine
 
 def get_trading_signal(n=DEFAULT_N, update=True):
     if update:
-        print("Updating data...")
-        update_all_data()
+        user_input = input("是否更新数据? (y/n, 默认 n): ").strip().lower()
+        if user_input == 'y':
+            print("Updating data...")
+            update_all_data()
+        else:
+            print("Skipping data update.")
         
     engine = BacktestEngine(start_date="20250101") # Only load recent data for speed
     
