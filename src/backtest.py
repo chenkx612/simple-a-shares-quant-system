@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from .config import PORTFOLIOS, DEFAULT_N, START_DATE, ASSET_CODES
+from .config import PORTFOLIOS, DEFAULT_N, START_DATE
 from .data_loader import load_all_data
 
 class BacktestEngine:
@@ -42,11 +42,6 @@ class BacktestEngine:
             p_ret = pd.Series(0.0, index=self.daily_returns.index)
             valid_asset = False
             for asset, weight in p_val['assets'].items():
-                # ASSET_CODES keys map to data_map keys?
-                # In config.py: ASSET_CODES = {"kc50": "588000", ...}
-                # In data_loader.py: load_all_data uses ASSET_CODES keys as keys in data_map
-                # So asset string like "kc50" should be in self.daily_returns.columns
-                
                 if asset in self.daily_returns.columns:
                     p_ret += self.daily_returns[asset] * weight
                     valid_asset = True
@@ -107,7 +102,7 @@ class BacktestEngine:
         ann_ret = (1 + total_ret) ** (252/days) - 1
         
         # Sharpe Ratio (assuming Risk Free Rate = 2%)
-        rf = 0.02
+        rf = 0.011
         vol = returns.std() * np.sqrt(252)
         sharpe = (ann_ret - rf) / vol if vol != 0 else 0
         
