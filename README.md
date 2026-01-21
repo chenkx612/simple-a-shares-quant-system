@@ -1,6 +1,6 @@
-# 个人量化投资项目
+# Simple A-Shares Quant System
 
-基于 Python 实现的简单动量轮动策略量化系统。
+个人量化投资项目，基于 Python 实现的简单动量轮动策略量化系统。
 
 ## 功能特性
 
