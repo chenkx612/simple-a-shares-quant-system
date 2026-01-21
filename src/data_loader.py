@@ -47,13 +47,43 @@ def update_all_data():
     for name, code in ASSET_CODES.items():
         file_path = os.path.join(DATA_DIR, f"{code}.csv")
         
-        # 这里为了简单，每次全量拉取。
-        # 如果数据量大，可以读取现有文件，获取最后日期，然后增量拉取。
-        df = fetch_data(code)
+        start_date = "20150101"
+        existing_df = None
         
-        if df is not None and not df.empty:
+        # 尝试读取现有数据以进行增量更新
+        if os.path.exists(file_path):
+            try:
+                existing_df = pd.read_csv(file_path, index_col='date', parse_dates=True)
+                if not existing_df.empty:
+                    last_date = existing_df.index.max()
+                    # 从最后一天数据的下一天开始拉取
+                    start_date = (last_date + pd.Timedelta(days=1)).strftime("%Y%m%d")
+            except Exception as e:
+                print(f"Error reading existing file for {code}: {e}, will fetch full data.")
+                existing_df = None
+
+        # 如果开始日期晚于今天，说明已经是最新
+        today_str = datetime.now().strftime("%Y%m%d")
+        if start_date > today_str:
+            print(f"{name} ({code}) is already up to date.")
+            continue
+
+        new_df = fetch_data(code, start_date=start_date)
+        
+        if new_df is not None and not new_df.empty:
+            if existing_df is not None:
+                # 合并新旧数据
+                df = pd.concat([existing_df, new_df])
+                # 去重（保留最新的）
+                df = df[~df.index.duplicated(keep='last')]
+                df = df.sort_index()
+            else:
+                df = new_df
+                
             df.to_csv(file_path)
             print(f"Saved {name} ({code}) to {file_path}")
+        elif existing_df is not None:
+             print(f"No new data found for {name} ({code}).")
         else:
             print(f"Failed to fetch data for {name} ({code})")
         
