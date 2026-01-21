@@ -60,12 +60,6 @@ def update_all_data():
                 print(f"Error reading existing file for {code}: {e}, will fetch full data.")
                 existing_df = None
 
-        # 如果开始日期晚于今天，说明已经是最新
-        today_str = datetime.now().strftime("%Y%m%d")
-        if start_date > today_str:
-            print(f"{name} ({code}) is already up to date.")
-            continue
-
         new_df = fetch_data(code, start_date=start_date)
         
         if new_df is not None and not new_df.empty:
