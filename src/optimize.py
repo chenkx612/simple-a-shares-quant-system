@@ -2,7 +2,7 @@ import pandas as pd
 from .backtest import BacktestEngine
 
 def optimize_n():
-    n_values = [5, 10, 20, 30, 60, 90, 120]
+    n_values = [1, 2, 3, 6, 10, 20, 30, 60, 100]
     engine = BacktestEngine()
     
     results = []
