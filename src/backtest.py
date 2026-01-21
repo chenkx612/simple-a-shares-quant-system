@@ -7,22 +7,23 @@ class BacktestEngine:
     def __init__(self, start_date=START_DATE):
         self.start_date = start_date
         self.data_map = load_all_data()
-        self.aligned_data = self._align_data()
-        self.daily_returns = self.aligned_data.pct_change().fillna(0)
+        self.aligned_close = self._align_data('close')
+        self.aligned_open = self._align_data('open')
+        self.daily_returns_close = self.aligned_close.pct_change().fillna(0)
+        self.daily_returns_open = self.aligned_open.pct_change().fillna(0)
         
-    def _align_data(self):
-        # Merge all closes into one DF
+    def _align_data(self, price_col='close'):
+        # Merge all prices into one DF
         dfs = []
         for asset_key, df in self.data_map.items():
-            # Use 'close' price
-            if 'close' in df.columns:
-                s = df['close'].rename(asset_key)
+            if price_col in df.columns:
+                s = df[price_col].rename(asset_key)
                 dfs.append(s)
             else:
-                print(f"Warning: 'close' column missing for {asset_key}")
+                print(f"Warning: '{price_col}' column missing for {asset_key}")
         
         if not dfs:
-            raise ValueError("No data loaded")
+            raise ValueError(f"No data loaded for {price_col}")
             
         combined = pd.concat(dfs, axis=1)
         combined = combined.sort_index()
@@ -32,18 +33,21 @@ class BacktestEngine:
         combined = combined[combined.index >= self.start_date]
         return combined
 
-    def calculate_portfolio_returns(self):
+    def calculate_portfolio_returns(self, daily_returns=None):
         """
         Calculate daily returns for each strategy portfolio
         """
-        port_rets = pd.DataFrame(index=self.daily_returns.index)
+        if daily_returns is None:
+            daily_returns = self.daily_returns_close
+
+        port_rets = pd.DataFrame(index=daily_returns.index)
         
         for p_key, p_val in PORTFOLIOS.items():
-            p_ret = pd.Series(0.0, index=self.daily_returns.index)
+            p_ret = pd.Series(0.0, index=daily_returns.index)
             valid_asset = False
             for asset, weight in p_val['assets'].items():
-                if asset in self.daily_returns.columns:
-                    p_ret += self.daily_returns[asset] * weight
+                if asset in daily_returns.columns:
+                    p_ret += daily_returns[asset] * weight
                     valid_asset = True
                 else:
                     print(f"Warning: Asset {asset} not in daily returns")
@@ -57,13 +61,13 @@ class BacktestEngine:
         """
         Run the strategy with parameter n
         """
-        # 1. Portfolio Daily Returns
-        port_daily_rets = self.calculate_portfolio_returns()
+        # 1. Portfolio Daily Returns (Close-to-Close for Signal)
+        port_daily_rets_close = self.calculate_portfolio_returns(self.daily_returns_close)
         
-        # 2. Strategy Signal
+        # 2. Strategy Signal (based on Close prices)
         # Construct wealth index for each portfolio to calculate n-day return correctly
         # (1+r1)*(1+r2)...
-        port_wealth = (1 + port_daily_rets).cumprod()
+        port_wealth = (1 + port_daily_rets_close).cumprod()
         
         # Past n days return = Wealth_T / Wealth_{T-n} - 1
         past_n_returns = port_wealth / port_wealth.shift(n) - 1
@@ -72,18 +76,24 @@ class BacktestEngine:
         # idxmax gives the column name with max value
         signal = past_n_returns.idxmax(axis=1)
         
-        # 3. Strategy Performance
-        # Strategy holds 'signal' from previous day
-        # shift(1) moves signal from T to T+1
-        active_signal = signal.shift(1)
+        # 3. Strategy Performance (based on Open prices)
+        # Execute at Open, so we track Open-to-Open returns
+        port_daily_rets_open = self.calculate_portfolio_returns(self.daily_returns_open)
         
-        strategy_ret = pd.Series(0.0, index=port_daily_rets.index)
+        # Strategy holds 'signal' from previous day(s)
+        # If signal generated at Close(T-2), we trade at Open(T-1).
+        # We hold from Open(T-1) to Open(T).
+        # The return (Open(T)-Open(T-1))/Open(T-1) is at index T.
+        # So at index T, we use Signal(T-2).
+        active_signal = signal.shift(2)
+        
+        strategy_ret = pd.Series(0.0, index=port_daily_rets_open.index)
         
         for p_key in PORTFOLIOS.keys():
             mask = (active_signal == p_key)
-            strategy_ret[mask] = port_daily_rets[p_key][mask]
+            strategy_ret[mask] = port_daily_rets_open[p_key][mask]
             
-        return strategy_ret, active_signal, port_daily_rets
+        return strategy_ret, active_signal, port_daily_rets_open
 
     @staticmethod
     def calculate_metrics(returns):
