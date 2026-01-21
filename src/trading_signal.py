@@ -1,7 +1,5 @@
-import pandas as pd
-from datetime import datetime, timedelta
-from .config import PORTFOLIOS, DEFAULT_N
-from .data_loader import update_all_data, load_all_data
+from .config import PORTFOLIOS, DEFAULT_N, ASSET_CODES
+from .data_loader import update_all_data
 from .backtest import BacktestEngine
 
 def get_trading_signal(n=DEFAULT_N, update=True):
@@ -9,7 +7,7 @@ def get_trading_signal(n=DEFAULT_N, update=True):
         print("Updating data...")
         update_all_data()
         
-    engine = BacktestEngine(start_date="20240101") # Only load recent data for speed
+    engine = BacktestEngine(start_date="20250101") # Only load recent data for speed
     
     # Calculate portfolio daily returns
     port_rets = engine.calculate_portfolio_returns()
@@ -45,7 +43,6 @@ def get_trading_signal(n=DEFAULT_N, update=True):
     sorted_rets = n_day_returns.sort_values(ascending=False)
     
     best_portfolio = sorted_rets.index[0]
-    best_ret = sorted_rets.iloc[0]
     
     print("\n" + "="*50)
     print(f"TRADING SIGNAL for Next Trading Day")
@@ -66,10 +63,8 @@ def get_trading_signal(n=DEFAULT_N, update=True):
     print("\nTarget Allocation:")
     assets = PORTFOLIOS[best_portfolio]['assets']
     for asset, weight in assets.items():
-        # Ideally print asset name from config?
-        # We don't have asset names in config easily accessible map reverse
-        # But we can look at config.py
-        print(f"  {asset:<10}: {weight:.0%}")
+        code = ASSET_CODES.get(asset, "N/A")
+        print(f"  {asset:<10} ({code:<6}): {weight:.0%}")
         
 if __name__ == "__main__":
     get_trading_signal()
