@@ -29,8 +29,9 @@ def main():
         elif choice == '2':
             print(f"\n正在运行回测 (N={DEFAULT_N})...")
             engine = BacktestEngine()
-            ret, _, _ = engine.run_strategy(n=DEFAULT_N)
-            metrics = engine.calculate_metrics(ret)
+            strategy = MomentumStrategy(portfolios=PORTFOLIOS, n=DEFAULT_N)
+            engine.run(strategy)
+            metrics = engine.get_metrics()
             print("\n回测结果:")
             for k, v in metrics.items():
                 val = f"{v:.2%}" if k != "Sharpe Ratio" else f"{v:.2f}"

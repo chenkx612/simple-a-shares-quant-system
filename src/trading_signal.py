@@ -1,6 +1,7 @@
 from .config import PORTFOLIOS, DEFAULT_N, ASSET_CODES
 from .data_loader import update_all_data
 from .backtest import BacktestEngine
+from .strategy import MomentumStrategy
 
 def get_trading_signal(n=DEFAULT_N, update=True):
     if update:
@@ -11,41 +12,27 @@ def get_trading_signal(n=DEFAULT_N, update=True):
         else:
             print("Skipping data update.")
         
-    engine = BacktestEngine(start_date="20250101") # Only load recent data for speed
+    engine = BacktestEngine(start_date="20240101") # Use a reasonable lookback
+    strategy = MomentumStrategy(portfolios=PORTFOLIOS, n=n)
     
-    # Calculate portfolio daily returns
-    port_rets = engine.calculate_portfolio_returns()
+    # Initialize strategy data (calculates wealth and momentum)
+    strategy.set_data(engine.data_map, engine.aligned_open.index)
     
-    # We need the last n+1 days to calculate n-day return
-    # If today is T, we need Price_T and Price_{T-n}
-    # Return = Price_T / Price_{T-n} - 1
-    
-    # Get wealth index
-    wealth = (1 + port_rets).cumprod()
-    
-    if len(wealth) < n + 1:
+    if strategy.past_n_returns is None or strategy.past_n_returns.empty:
         print("Not enough data to calculate signal.")
         return
 
-    # Calculate n-day return for the last available day
-    # We look at the last row of wealth, and the row n days before it
+    # Get the latest returns
+    # past_n_returns is (Wealth_T / Wealth_{T-n} - 1)
+    last_returns = strategy.past_n_returns.iloc[-1]
+    last_date = strategy.past_n_returns.index[-1]
     
-    last_date = wealth.index[-1]
-    prev_n_date_idx = -1 - n
-    
-    if abs(prev_n_date_idx) > len(wealth):
-         print("Not enough data history.")
+    if last_returns.isna().all():
+         print(f"Not enough data history (Last date: {last_date}).")
          return
-
-    current_wealth = wealth.iloc[-1]
-    prev_wealth = wealth.iloc[prev_n_date_idx]
-    
-    # Return over past n days
-    n_day_returns = current_wealth / prev_wealth - 1
     
     # Sort
-    sorted_rets = n_day_returns.sort_values(ascending=False)
-    
+    sorted_rets = last_returns.sort_values(ascending=False)
     best_portfolio = sorted_rets.index[0]
     
     print("\n" + "="*50)
@@ -69,6 +56,7 @@ def get_trading_signal(n=DEFAULT_N, update=True):
     for asset, weight in assets.items():
         code = ASSET_CODES.get(asset, "N/A")
         print(f"  {asset:<10} ({code:<6}): {weight:.0%}")
+
         
 if __name__ == "__main__":
     get_trading_signal()

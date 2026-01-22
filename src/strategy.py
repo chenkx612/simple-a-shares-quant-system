@@ -61,7 +61,7 @@ class MomentumStrategy(Strategy):
         # We need daily returns to calculate wealth
         daily_rets = prices.pct_change().fillna(0)
         
-        port_wealth = pd.DataFrame(index=daily_rets.index)
+        self.port_wealth = pd.DataFrame(index=daily_rets.index)
         
         for p_key, p_val in self.portfolios.items():
             p_ret = pd.Series(0.0, index=daily_rets.index)
@@ -70,23 +70,23 @@ class MomentumStrategy(Strategy):
                     p_ret += daily_rets[asset] * weight
             
             # Wealth index = cumprod(1 + r)
-            port_wealth[p_key] = (1 + p_ret).cumprod()
+            self.port_wealth[p_key] = (1 + p_ret).cumprod()
             
         # 3. Calculate Momentum (Past N days return)
         # Return = Wealth_T / Wealth_{T-n} - 1
-        past_n_returns = port_wealth / port_wealth.shift(self.n) - 1
+        self.past_n_returns = self.port_wealth / self.port_wealth.shift(self.n) - 1
         
         # 4. Generate Signals
         # Signal T is based on data up to T.
         # It will be used for trading on T+1 Open.
         # In the original code: signal = past_n_returns.idxmax(axis=1)
         # Handle all-NaN rows to avoid FutureWarning
-        self.signals = pd.Series(index=past_n_returns.index, dtype='object')
+        self.signals = pd.Series(index=self.past_n_returns.index, dtype='object')
         
         # Only calculate idxmax for rows that have at least one valid value
-        valid_rows = past_n_returns.notna().any(axis=1)
+        valid_rows = self.past_n_returns.notna().any(axis=1)
         if valid_rows.any():
-            self.signals.loc[valid_rows] = past_n_returns.loc[valid_rows].idxmax(axis=1)
+            self.signals.loc[valid_rows] = self.past_n_returns.loc[valid_rows].idxmax(axis=1)
 
     def get_target_weights(self, date):
         # We need the signal generated BEFORE today (i.e., yesterday's close)

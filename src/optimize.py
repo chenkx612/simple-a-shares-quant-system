@@ -1,5 +1,7 @@
 import pandas as pd
 from .backtest import BacktestEngine
+from .strategy import MomentumStrategy
+from .config import PORTFOLIOS
 
 def optimize_n():
     n_values = [1, 2, 3, 6, 10, 20, 30, 60, 100]
@@ -18,9 +20,12 @@ def optimize_n():
         import warnings
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            ret, _, _ = engine.run_strategy(n=n)
+            # Create new engine for each run to ensure clean state
+            engine = BacktestEngine()
+            strategy = MomentumStrategy(portfolios=PORTFOLIOS, n=n)
+            engine.run(strategy)
         
-        metrics = engine.calculate_metrics(ret)
+        metrics = engine.get_metrics()
         
         if not metrics:
             continue

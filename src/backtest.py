@@ -56,8 +56,6 @@ class BacktestEngine:
         # Strategy is responsible for looking at data only up to 'date'.
         strategy.set_data(self.data_map, self.aligned_open.index)
         
-        print(f"Starting backtest from {self.aligned_open.index[0]} to {self.aligned_open.index[-1]}...")
-        
         for date in self.aligned_open.index:
             # 1. Get Market Data for today
             try:
