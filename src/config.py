@@ -45,3 +45,4 @@ PORTFOLIOS = {
 DEFAULT_N = 20 # 经过优化，20天表现最好
 START_DATE = "20200101" # 回测开始时间
 DATA_DIR = "data"
+COMMISSION_RATE = 0.0003 # 双边佣金万分之三

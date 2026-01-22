@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from .config import PORTFOLIOS, DEFAULT_N, START_DATE
+from .config import PORTFOLIOS, DEFAULT_N, START_DATE, COMMISSION_RATE
 from .data_loader import load_all_data
 
 class BacktestEngine:
@@ -92,6 +92,29 @@ class BacktestEngine:
         for p_key in PORTFOLIOS.keys():
             mask = (active_signal == p_key)
             strategy_ret[mask] = port_daily_rets_open[p_key][mask]
+            
+        # 4. Apply Transaction Costs (Commission)
+        # Calculate when trades occur
+        prev_signal = active_signal.shift(1)
+        
+        # Entry: transitioning from NaN (no position) to a valid signal
+        # Note: signal has NaNs at the beginning due to shift(2) and past_n_returns
+        entry_mask = (prev_signal.isna()) & (active_signal.notna())
+        
+        # Switch: transitioning from one valid signal to another valid signal
+        switch_mask = (prev_signal.notna()) & (active_signal.notna()) & (prev_signal != active_signal)
+        
+        # Cost application
+        costs = pd.Series(0.0, index=strategy_ret.index)
+        
+        # Entry cost: buy new portfolio (1x commission)
+        costs[entry_mask] = COMMISSION_RATE
+        
+        # Switch cost: sell old portfolio + buy new portfolio (2x commission)
+        costs[switch_mask] = 2 * COMMISSION_RATE
+        
+        # Adjust returns: R_net = (1 + R_gross) * (1 - cost) - 1
+        strategy_ret = (1 + strategy_ret) * (1 - costs) - 1
             
         return strategy_ret, active_signal, port_daily_rets_open
 
