@@ -1,146 +1,195 @@
 import pandas as pd
 import numpy as np
-from .config import PORTFOLIOS, DEFAULT_N, START_DATE, COMMISSION_RATE
+from .config import START_DATE, COMMISSION_RATE, DATA_DIR
 from .data_loader import load_all_data
+from .strategy import Strategy
 
 class BacktestEngine:
-    def __init__(self, start_date=START_DATE):
-        self.start_date = start_date
+    def __init__(self, initial_capital=100000.0, commission_rate=COMMISSION_RATE, start_date=START_DATE):
+        self.initial_capital = initial_capital
+        self.commission_rate = commission_rate
+        self.start_date = pd.Timestamp(start_date)
+        
         self.data_map = load_all_data()
-        self.aligned_close = self._align_data('close')
-        self.aligned_open = self._align_data('open')
-        self.daily_returns_close = self.aligned_close.pct_change().fillna(0)
-        self.daily_returns_open = self.aligned_open.pct_change().fillna(0)
+        self.aligned_open = None
+        self.aligned_close = None
+        self.available_assets = []
         
-    def _align_data(self, price_col='close'):
-        # Merge all prices into one DF
-        dfs = []
-        for asset_key, df in self.data_map.items():
-            if price_col in df.columns:
-                s = df[price_col].rename(asset_key)
-                dfs.append(s)
-            else:
-                print(f"Warning: '{price_col}' column missing for {asset_key}")
+        self._prepare_data()
         
-        if not dfs:
-            raise ValueError(f"No data loaded for {price_col}")
-            
-        combined = pd.concat(dfs, axis=1)
-        combined = combined.sort_index()
-        # Forward fill for missing data (e.g. non-trading days for some markets)
-        combined = combined.ffill()
-        # Filter by start_date
-        combined = combined[combined.index >= self.start_date]
-        return combined
+        # Account State
+        self.cash = initial_capital
+        self.positions = {} # {asset_code: shares}
+        self.history = [] # List of dicts recording daily state
 
-    def calculate_portfolio_returns(self, daily_returns=None):
+    def _prepare_data(self):
         """
-        Calculate daily returns for each strategy portfolio
+        Align data for all assets
         """
-        if daily_returns is None:
-            daily_returns = self.daily_returns_close
+        opens = []
+        closes = []
+        
+        for asset, df in self.data_map.items():
+            if 'open' in df.columns and 'close' in df.columns:
+                opens.append(df['open'].rename(asset))
+                closes.append(df['close'].rename(asset))
+                
+        if not opens:
+            raise ValueError("No valid data found")
+            
+        self.aligned_open = pd.concat(opens, axis=1).sort_index().ffill()
+        self.aligned_close = pd.concat(closes, axis=1).sort_index().ffill()
+        
+        # Filter by start date
+        self.aligned_open = self.aligned_open[self.aligned_open.index >= self.start_date]
+        self.aligned_close = self.aligned_close[self.aligned_close.index >= self.start_date]
+        
+        self.available_assets = self.aligned_open.columns.tolist()
 
-        port_rets = pd.DataFrame(index=daily_returns.index)
-        
-        for p_key, p_val in PORTFOLIOS.items():
-            p_ret = pd.Series(0.0, index=daily_returns.index)
-            valid_asset = False
-            for asset, weight in p_val['assets'].items():
-                if asset in daily_returns.columns:
-                    p_ret += daily_returns[asset] * weight
-                    valid_asset = True
-                else:
-                    print(f"Warning: Asset {asset} not in daily returns")
-            
-            if valid_asset:
-                port_rets[p_key] = p_ret
-            
-        return port_rets
-
-    def run_strategy(self, n=DEFAULT_N):
+    def run(self, strategy: Strategy):
         """
-        Run the strategy with parameter n
+        Run the backtest loop
         """
-        # 1. Portfolio Daily Returns (Close-to-Close for Signal)
-        port_daily_rets_close = self.calculate_portfolio_returns(self.daily_returns_close)
+        # Pass data to strategy
+        # Note: Strategy needs access to historical data. 
+        # For simplicity, we pass the raw map. 
+        # Strategy is responsible for looking at data only up to 'date'.
+        strategy.set_data(self.data_map, self.aligned_open.index)
         
-        # 2. Strategy Signal (based on Close prices)
-        # Construct wealth index for each portfolio to calculate n-day return correctly
-        # (1+r1)*(1+r2)...
-        port_wealth = (1 + port_daily_rets_close).cumprod()
+        print(f"Starting backtest from {self.aligned_open.index[0]} to {self.aligned_open.index[-1]}...")
         
-        # Past n days return = Wealth_T / Wealth_{T-n} - 1
-        past_n_returns = port_wealth / port_wealth.shift(n) - 1
-        
-        # Signal: Select portfolio with max past_n_return
-        # idxmax gives the column name with max value
-        signal = past_n_returns.idxmax(axis=1)
-        
-        # 3. Strategy Performance (based on Open prices)
-        # Execute at Open, so we track Open-to-Open returns
-        port_daily_rets_open = self.calculate_portfolio_returns(self.daily_returns_open)
-        
-        # Strategy holds 'signal' from previous day(s)
-        # If signal generated at Close(T-2), we trade at Open(T-1).
-        # We hold from Open(T-1) to Open(T).
-        # The return (Open(T)-Open(T-1))/Open(T-1) is at index T.
-        # So at index T, we use Signal(T-2).
-        active_signal = signal.shift(2)
-        
-        strategy_ret = pd.Series(0.0, index=port_daily_rets_open.index)
-        
-        for p_key in PORTFOLIOS.keys():
-            mask = (active_signal == p_key)
-            strategy_ret[mask] = port_daily_rets_open[p_key][mask]
+        for date in self.aligned_open.index:
+            # 1. Get Market Data for today
+            try:
+                open_prices = self.aligned_open.loc[date]
+                close_prices = self.aligned_close.loc[date]
+            except KeyError:
+                continue
+                
+            # 2. Strategy Step (Generate Signal based on history up to yesterday)
+            # The strategy returns target weights for TODAY (to be executed at Open)
+            target_weights = strategy.get_target_weights(date)
             
-        # 4. Apply Transaction Costs (Commission)
-        # Calculate when trades occur
-        prev_signal = active_signal.shift(1)
-        
-        # Entry: transitioning from NaN (no position) to a valid signal
-        # Note: signal has NaNs at the beginning due to shift(2) and past_n_returns
-        entry_mask = (prev_signal.isna()) & (active_signal.notna())
-        
-        # Switch: transitioning from one valid signal to another valid signal
-        switch_mask = (prev_signal.notna()) & (active_signal.notna()) & (prev_signal != active_signal)
-        
-        # Cost application
-        costs = pd.Series(0.0, index=strategy_ret.index)
-        
-        # Entry cost: buy new portfolio (1x commission)
-        costs[entry_mask] = COMMISSION_RATE
-        
-        # Switch cost: sell old portfolio + buy new portfolio (2x commission)
-        costs[switch_mask] = 2 * COMMISSION_RATE
-        
-        # Adjust returns: R_net = (1 + R_gross) * (1 - cost) - 1
-        strategy_ret = (1 + strategy_ret) * (1 - costs) - 1
+            # 3. Execute Trades at Open
+            self._rebalance(target_weights, open_prices)
             
-        return strategy_ret, active_signal, port_daily_rets_open
+            # 4. Update Portfolio Value at Close
+            total_value = self._calculate_total_value(close_prices)
+            
+            # 5. Record History
+            self.history.append({
+                'date': date,
+                'total_value': total_value,
+                'cash': self.cash,
+                'positions': self.positions.copy()
+            })
+            
+        return pd.DataFrame(self.history).set_index('date')
 
-    @staticmethod
-    def calculate_metrics(returns):
-        # Annualized Return, Sharpe, Max Drawdown
-        if returns.empty:
+    def _rebalance(self, target_weights, current_prices):
+        """
+        Rebalance portfolio to target weights at current prices.
+        """
+        # Calculate current total equity using OPEN prices (execution price)
+        current_equity = self._calculate_total_value(current_prices)
+        
+        if current_equity <= 0:
+            return
+
+        # If no target, liquidate everything
+        if not target_weights:
+            for asset, shares in list(self.positions.items()):
+                if shares > 0:
+                    price = current_prices.get(asset, 0)
+                    if price > 0:
+                        value = shares * price
+                        cost = value * self.commission_rate
+                        self.cash += value - cost
+                        self.positions[asset] = 0
+            return
+
+        # Calculate target value for each asset
+        # target_weights: {asset: weight}
+        
+        # First, handle sells to free up cash
+        # We need to know how much to buy/sell
+        # Target Value = Total Equity * Weight
+        
+        # Note: This is a simplified "Target Weight" execution.
+        # Real execution might be more complex (ordering sells before buys, etc.)
+        # Here we calculate net change in cash required.
+        
+        # But wait, transaction cost reduces equity.
+        # If we target 100% equity, we might run out of cash due to commissions.
+        # We should reserve some cash or adjust weights?
+        # For simplicity, we assume weights sum to 1.0 or less.
+        # If sum is 1.0, we might need to sell slightly more or buy slightly less.
+        # Let's calculate target shares.
+        
+        # To avoid complex solving for exact commission, we approximate:
+        # We use current_equity as the basis.
+        
+        for asset, weight in target_weights.items():
+            if asset not in current_prices or pd.isna(current_prices[asset]):
+                continue
+                
+            target_val = current_equity * weight
+            price = current_prices[asset]
+            
+            if price <= 0: continue
+            
+            target_shares = target_val / price
+            current_shares = self.positions.get(asset, 0)
+            
+            diff_shares = target_shares - current_shares
+            
+            if diff_shares == 0:
+                continue
+                
+            trade_val = diff_shares * price
+            cost = abs(trade_val) * self.commission_rate
+            
+            # Update
+            self.cash -= (trade_val + cost)
+            self.positions[asset] = current_shares + diff_shares
+
+        # Handle assets that are not in target_weights (Sell them)
+        for asset in list(self.positions.keys()):
+            if asset not in target_weights and self.positions[asset] > 0:
+                price = current_prices.get(asset, 0)
+                if price > 0:
+                    shares = self.positions[asset]
+                    value = shares * price
+                    cost = value * self.commission_rate
+                    self.cash += value - cost
+                    self.positions[asset] = 0
+
+    def _calculate_total_value(self, prices):
+        val = self.cash
+        for asset, shares in self.positions.items():
+            if shares != 0:
+                price = prices.get(asset, 0)
+                if not pd.isna(price):
+                    val += shares * price
+        return val
+
+    def get_metrics(self):
+        if not self.history:
             return {}
             
-        # Clean NaN (first few days)
-        returns = returns.dropna()
-        if len(returns) == 0: return {}
-
-        total_ret = (1 + returns).prod() - 1
-        days = len(returns)
+        df = pd.DataFrame(self.history).set_index('date')
+        df['returns'] = df['total_value'].pct_change().fillna(0)
         
-        # Annualized Return
+        total_ret = (df['total_value'].iloc[-1] / self.initial_capital) - 1
+        days = len(df)
         ann_ret = (1 + total_ret) ** (252/days) - 1
         
-        # Sharpe Ratio (assuming Risk Free Rate = 2%)
-        rf = 0.011
-        vol = returns.std() * np.sqrt(252)
+        rf = 0.02
+        vol = df['returns'].std() * np.sqrt(252)
         sharpe = (ann_ret - rf) / vol if vol != 0 else 0
         
         # Max Drawdown
-        wealth = (1 + returns).cumprod()
+        wealth = df['total_value']
         peak = wealth.cummax()
         drawdown = (wealth - peak) / peak
         max_dd = drawdown.min()
@@ -154,10 +203,15 @@ class BacktestEngine:
         }
 
 if __name__ == "__main__":
-    engine = BacktestEngine()
-    ret, sig, port_rets = engine.run_strategy(n=20)
-    metrics = engine.calculate_metrics(ret)
+    from .strategy import MomentumStrategy
+    from .config import PORTFOLIOS, DEFAULT_N
     
-    print("Strategy Performance (N=20):")
+    engine = BacktestEngine()
+    strategy = MomentumStrategy(portfolios=PORTFOLIOS, n=DEFAULT_N)
+    
+    result = engine.run(strategy)
+    metrics = engine.get_metrics()
+    
+    print("\nBacktest Results:")
     for k, v in metrics.items():
         print(f"{k}: {v:.2%}" if k != "Sharpe Ratio" else f"{k}: {v:.2f}")
