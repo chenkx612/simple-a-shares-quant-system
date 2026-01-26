@@ -1,9 +1,22 @@
-from .config import PORTFOLIOS, DEFAULT_N, ASSET_CODES
+from .config import PORTFOLIOS, DEFAULT_N, ASSET_CODES, SMART_M, SMART_N, SMART_K, CORR_THRESHOLD
 from .data_loader import update_all_data
 from .backtest import BacktestEngine
-from .strategy import MomentumStrategy
+from .strategy import MomentumStrategy, SmartRotationStrategy
+import pandas as pd
 
-def get_trading_signal(n=DEFAULT_N, update=True):
+def get_trading_signal(strategy_type='momentum', **kwargs):
+    """
+    Generate trading signal for the next trading day.
+    
+    Args:
+        strategy_type (str): 'momentum' or 'smart_rotation'
+        **kwargs: Strategy parameters
+            - For momentum: n (default: DEFAULT_N)
+            - For smart_rotation: m, n, k, corr_threshold (default: config values)
+            - Common: update (bool, default: True)
+    """
+    update = kwargs.get('update', True)
+    
     if update:
         user_input = input("是否更新数据? (y/n, 默认 n): ").strip().lower()
         if user_input == 'y':
@@ -13,17 +26,38 @@ def get_trading_signal(n=DEFAULT_N, update=True):
             print("Skipping data update.")
         
     engine = BacktestEngine(start_date="20240101") # Use a reasonable lookback
-    strategy = MomentumStrategy(portfolios=PORTFOLIOS, n=n)
     
-    # Initialize strategy data (calculates wealth and momentum)
+    if strategy_type == 'momentum':
+        n = kwargs.get('n', DEFAULT_N)
+        strategy = MomentumStrategy(portfolios=PORTFOLIOS, n=n)
+    elif strategy_type == 'smart_rotation':
+        m = kwargs.get('m', SMART_M)
+        n = kwargs.get('n', SMART_N)
+        k = kwargs.get('k', SMART_K)
+        corr_threshold = kwargs.get('corr_threshold', CORR_THRESHOLD)
+        strategy = SmartRotationStrategy(m=m, n=n, k=k, corr_threshold=corr_threshold)
+    else:
+        print(f"Unknown strategy type: {strategy_type}")
+        return
+
+    # Initialize strategy data (calculates signals)
     strategy.set_data(engine.data_map, engine.aligned_open.index)
     
+    print("\n" + "="*50)
+    print(f"TRADING SIGNAL for Next Trading Day")
+    
+    if strategy_type == 'momentum':
+        _print_momentum_signal(strategy, kwargs.get('n', DEFAULT_N))
+    elif strategy_type == 'smart_rotation':
+        _print_smart_rotation_signal(strategy, kwargs.get('n', SMART_N), kwargs.get('k', SMART_K))
+        
+    print("="*50)
+
+def _print_momentum_signal(strategy, n):
     if strategy.past_n_returns is None or strategy.past_n_returns.empty:
         print("Not enough data to calculate signal.")
         return
 
-    # Get the latest returns
-    # past_n_returns is (Wealth_T / Wealth_{T-n} - 1)
     last_returns = strategy.past_n_returns.iloc[-1]
     last_date = strategy.past_n_returns.index[-1]
     
@@ -31,15 +65,12 @@ def get_trading_signal(n=DEFAULT_N, update=True):
          print(f"Not enough data history (Last date: {last_date}).")
          return
     
-    # Sort
     sorted_rets = last_returns.sort_values(ascending=False)
     best_portfolio = sorted_rets.index[0]
     
-    print("\n" + "="*50)
-    print(f"TRADING SIGNAL for Next Trading Day")
     print(f"Data Date: {last_date.strftime('%Y-%m-%d')}")
     print(f"Lookback Window (N): {n} days")
-    print("="*50)
+    print("-" * 50)
     
     print(f"\nPortfolio Returns (Past {n} days):")
     for p, r in sorted_rets.items():
@@ -48,15 +79,54 @@ def get_trading_signal(n=DEFAULT_N, update=True):
         
     print("-" * 50)
     print(f"RECOMMENDATION: {PORTFOLIOS[best_portfolio]['name']}")
-    print("-" * 50)
     
-    # Details of the recommended portfolio
     print("\nTarget Allocation:")
     assets = PORTFOLIOS[best_portfolio]['assets']
     for asset, weight in assets.items():
         code = ASSET_CODES.get(asset, "N/A")
         print(f"  {asset:<10} ({code:<6}): {weight:.0%}")
 
+def _print_smart_rotation_signal(strategy, n, k):
+    # strategy.signals is a dict: Date -> [selected_assets]
+    # strategy.factors is a DataFrame: Date x Asset -> Factor Value
+    
+    if not strategy.signals:
+        print("Not enough data to calculate signal.")
+        return
         
+    # Get the last date in signals
+    # Note: signals keys are dates where we have a signal
+    sorted_dates = sorted(strategy.signals.keys())
+    last_date = sorted_dates[-1]
+    selected_assets = strategy.signals[last_date]
+    
+    print(f"Data Date: {last_date.strftime('%Y-%m-%d')}")
+    print(f"Lookback Window (N): {n} days")
+    print(f"Correlation Window (K): {k} days")
+    print("-" * 50)
+    
+    if not selected_assets:
+        print("RECOMMENDATION: Cash (No assets selected)")
+        return
+        
+    print(f"RECOMMENDATION: Buy/Hold Selected Assets")
+    print("\nTarget Allocation (Equal Weight):")
+    
+    weight = 1.0 / len(selected_assets)
+    
+    # Also show factor values for context
+    if last_date in strategy.factors.index:
+        factors = strategy.factors.loc[last_date]
+        print(f"\nSelected Assets Details (Factor = Return/Vol):")
+        for asset in selected_assets:
+            code = ASSET_CODES.get(asset, "N/A")
+            factor_val = factors.get(asset, float('nan'))
+            print(f"  {asset:<10} ({code:<6}): {weight:.0%} (Factor: {factor_val:.4f})")
+            
+    else:
+        for asset in selected_assets:
+            code = ASSET_CODES.get(asset, "N/A")
+            print(f"  {asset:<10} ({code:<6}): {weight:.0%}")
+
 if __name__ == "__main__":
-    get_trading_signal()
+    get_trading_signal(strategy_type='momentum')
