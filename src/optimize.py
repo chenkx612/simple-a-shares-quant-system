@@ -9,10 +9,10 @@ def optimize_n():
     
     results = []
     
-    print(f"{'N':<5} | {'Ann. Ret':<10} | {'Sharpe':<8} | {'Max DD':<10} | {'Total Ret':<10}")
-    print("-" * 55)
+    print(f"{'N':<5} | {'Ann. Ret':<10} | {'Sharpe':<8} | {'Max DD':<10} | {'Calmar':<8} | {'Total Ret':<10}")
+    print("-" * 65)
     
-    best_sharpe = -100
+    best_calmar = -100
     best_n = -1
     
     for n in n_values:
@@ -30,32 +30,36 @@ def optimize_n():
         if not metrics:
             continue
             
-        print(f"{n:<5} | {metrics['Annualized Return']:<10.2%} | {metrics['Sharpe Ratio']:<8.2f} | {metrics['Max Drawdown']:<10.2%} | {metrics['Total Return']:<10.2%}")
+        max_dd = abs(metrics['Max Drawdown'])
+        calmar = metrics['Annualized Return'] / max_dd if max_dd > 0.0001 else -999
+            
+        print(f"{n:<5} | {metrics['Annualized Return']:<10.2%} | {metrics['Sharpe Ratio']:<8.2f} | {metrics['Max Drawdown']:<10.2%} | {calmar:<8.2f} | {metrics['Total Return']:<10.2%}")
         
         results.append({
             "n": n,
+            "Calmar Ratio": calmar,
             **metrics
         })
         
-        if metrics['Sharpe Ratio'] > best_sharpe:
-            best_sharpe = metrics['Sharpe Ratio']
+        if calmar > best_calmar:
+            best_calmar = calmar
             best_n = n
             
-    print("-" * 55)
-    print(f"Best N by Sharpe Ratio: {best_n} (Sharpe: {best_sharpe:.2f})")
+    print("-" * 65)
+    print(f"Best N by Calmar Ratio: {best_n} (Calmar: {best_calmar:.2f})")
     return best_n, results
 
 def optimize_smart_params():
     # Optimization ranges
-    m_values = [1, 2, 3, 4]
-    n_values = [10, 20, 30, 60]
+    m_values = [3, 4, 5, 6, 10]
+    n_values = [10, 20, 30, 60, 100]
     
     print(f"\nRunning Smart Rotation Optimization...")
     print(f"Fixed Parameters: K={SMART_K}, Corr Threshold={CORR_THRESHOLD}")
-    print(f"{'M':<3} | {'N':<5} | {'Ann. Ret':<10} | {'Sharpe':<8} | {'Max DD':<10} | {'Total Ret':<10}")
-    print("-" * 60)
+    print(f"{'M':<3} | {'N':<5} | {'Ann. Ret':<10} | {'Sharpe':<8} | {'Max DD':<10} | {'Calmar':<8} | {'Total Ret':<10}")
+    print("-" * 70)
     
-    best_sharpe = -100
+    best_calmar = -100
     best_params = (2, 20) # Default fallback
     results = []
     
@@ -74,20 +78,24 @@ def optimize_smart_params():
             if not metrics:
                 continue
                 
-            print(f"{m:<3} | {n:<5} | {metrics['Annualized Return']:<10.2%} | {metrics['Sharpe Ratio']:<8.2f} | {metrics['Max Drawdown']:<10.2%} | {metrics['Total Return']:<10.2%}")
+            max_dd = abs(metrics['Max Drawdown'])
+            calmar = metrics['Annualized Return'] / max_dd if max_dd > 0.0001 else -999
+            
+            print(f"{m:<3} | {n:<5} | {metrics['Annualized Return']:<10.2%} | {metrics['Sharpe Ratio']:<8.2f} | {metrics['Max Drawdown']:<10.2%} | {calmar:<8.2f} | {metrics['Total Return']:<10.2%}")
             
             results.append({
                 "m": m,
                 "n": n,
+                "Calmar Ratio": calmar,
                 **metrics
             })
             
-            if metrics['Sharpe Ratio'] > best_sharpe:
-                best_sharpe = metrics['Sharpe Ratio']
+            if calmar > best_calmar:
+                best_calmar = calmar
                 best_params = (m, n)
     
-    print("-" * 60)
-    print(f"Best Parameters: M={best_params[0]}, N={best_params[1]} (Sharpe: {best_sharpe:.2f})")
+    print("-" * 70)
+    print(f"Best Parameters: M={best_params[0]}, N={best_params[1]} (Calmar: {best_calmar:.2f})")
     return best_params, results
 
 if __name__ == "__main__":
