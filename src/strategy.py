@@ -132,3 +132,122 @@ class MomentumStrategy(Strategy):
             return {}
             
         return self.portfolios[prev_signal]['assets']
+
+class SmartRotationStrategy(Strategy):
+    def __init__(self, m=2, n=20, k=20, corr_threshold=0.6):
+        super().__init__()
+        self.m = m
+        self.n = n
+        self.k = k
+        self.corr_threshold = corr_threshold
+        self.signals = {} # Date -> [selected_assets]
+
+    def on_data_loaded(self):
+        # 1. Align Close Prices
+        dfs = []
+        for asset_key, df in self.data_map.items():
+            if 'close' in df.columns:
+                s = df['close'].rename(asset_key)
+                dfs.append(s)
+        
+        if not dfs:
+            return
+            
+        prices = pd.concat(dfs, axis=1).sort_index().ffill()
+        
+        # 2. Calculate Daily Returns
+        daily_rets = prices.pct_change().fillna(0)
+        
+        # 3. Calculate Factor: Return / Volatility over past n days
+        # Return = Price_T / Price_{T-n} - 1
+        rolling_return = prices / prices.shift(self.n) - 1
+        
+        # Volatility: Standard deviation of daily returns over n days
+        # We use daily std dev. (Not annualized, since it's for ranking)
+        rolling_vol = daily_rets.rolling(self.n).std()
+        
+        # Factor = Return / Volatility
+        # Handle division by zero/nan
+        self.factors = rolling_return / rolling_vol.replace(0, np.nan)
+        
+        # 4. Calculate Rolling Correlations
+        # rolling(k).corr() returns a MultiIndex DataFrame (Date, Asset) -> Asset
+        rolling_corr = daily_rets.rolling(self.k).corr()
+        
+        # 5. Generate Signals
+        start_idx = max(self.n, self.k)
+        valid_dates = prices.index[start_idx:]
+        
+        for date in valid_dates:
+            # Get factors for this date
+            if date not in self.factors.index:
+                continue
+                
+            day_factors = self.factors.loc[date].dropna()
+            
+            if day_factors.empty:
+                continue
+                
+            # Sort by factor descending
+            sorted_assets = day_factors.sort_values(ascending=False).index.tolist()
+            
+            selected = []
+            
+            # Get correlation matrix for this date
+            try:
+                curr_corr = rolling_corr.loc[date]
+            except KeyError:
+                continue
+                
+            for asset in sorted_assets:
+                if len(selected) >= self.m:
+                    break
+                    
+                # Check correlation with already selected
+                is_correlated = False
+                for selected_asset in selected:
+                    # Check correlation
+                    # curr_corr is a DataFrame/Matrix
+                    if asset in curr_corr.index and selected_asset in curr_corr.columns:
+                        c = curr_corr.loc[asset, selected_asset]
+                        # Use absolute correlation? Or just positive?
+                        # "Too high correlation" usually implies positive correlation.
+                        # If they are negatively correlated, it's actually good for diversification.
+                        # So we should check for positive correlation > threshold.
+                        # Or abs(correlation) > threshold if we want to avoid any strong linear relationship?
+                        # User said "correlation too high" (相关性过高), usually means close to 1.
+                        # I'll use > threshold.
+                        if c > self.corr_threshold:
+                            is_correlated = True
+                            break
+                
+                if not is_correlated:
+                    selected.append(asset)
+            
+            self.signals[date] = selected
+
+    def get_target_weights(self, date):
+        # We need the signal generated BEFORE today (i.e., yesterday's close)
+        if self.dates is None:
+             return {}
+             
+        try:
+            # self.dates is expected to be a DatetimeIndex
+            idx = self.dates.get_loc(date)
+        except (ValueError, KeyError):
+            return {}
+            
+        if idx == 0:
+            return {}
+            
+        prev_date = self.dates[idx - 1]
+        
+        if prev_date in self.signals:
+            selected = self.signals[prev_date]
+            if not selected:
+                return {}
+            
+            weight = 1.0 / len(selected)
+            return {asset: weight for asset in selected}
+            
+        return {}
