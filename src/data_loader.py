@@ -35,9 +35,12 @@ def fetch_data(code, start_date="20160101", end_date=None):
         print(f"Error fetching {code}: {e}")
         return None
 
-def update_all_data():
+def update_all_data(force_full=False):
     """
     更新所有配置资产的数据并保存到本地
+    :param force_full: 是否强制全量更新。
+                       True: 忽略本地文件，从 20160101 重新拉取所有数据。
+                       False: 尝试增量更新。如果本地文件不存在，则全量拉取。
     """
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
@@ -45,64 +48,63 @@ def update_all_data():
     for name, code in ASSET_CODES.items():
         file_path = os.path.join(DATA_DIR, f"{code}.csv")
         
-        start_date = "20160101"
-        existing_df = None
+        # 默认起始日期
+        default_start_date = "20160101"
         
-        # 尝试读取现有数据以进行增量更新
-        if os.path.exists(file_path):
-            try:
-                existing_df = pd.read_csv(file_path, index_col='date', parse_dates=True)
-                if not existing_df.empty:
-                    last_date = existing_df.index.max()
-                    # 从最后一天开始拉取，以便校验复权因子是否变化
-                    start_date = last_date.strftime("%Y%m%d")
-            except Exception as e:
-                print(f"Error reading existing file for {code}: {e}, will fetch full data.")
-                existing_df = None
-
-        new_df = fetch_data(code, start_date=start_date)
-        
-        if new_df is not None and not new_df.empty:
-            df = None
-            if existing_df is not None:
-                # 检查是否发生复权（比较 last_date 的收盘价）
-                is_adjusted = False
-                if last_date in new_df.index:
-                    old_close = existing_df.loc[last_date, 'close']
-                    new_close = new_df.loc[last_date, 'close']
-                    
-                    # 处理可能返回 Series 的情况
-                    if isinstance(old_close, pd.Series): old_close = old_close.iloc[0]
-                    if isinstance(new_close, pd.Series): new_close = new_close.iloc[0]
-                    
-                    # 如果价格差异超过 0.01，认为发生了复权变化
-                    if abs(old_close - new_close) > 0.01:
-                        is_adjusted = True
-                        print(f"Adjusted factor changed for {name} ({code}). Triggering full update.")
-                else:
-                    # 如果新拉取的数据里没有 start_date，保险起见全量更新
-                    is_adjusted = True
-                    print(f"Data discontinuity for {name} ({code}). Triggering full update.")
-                
-                if is_adjusted:
-                    # 全量更新
-                    df = fetch_data(code, start_date="20160101")
-                else:
-                    # 增量合并
-                    df = pd.concat([existing_df, new_df])
-            else:
-                df = new_df
-                
-            if df is not None:
-                # 去重（保留最新的）
-                df = df[~df.index.duplicated(keep='last')]
-                df = df.sort_index()
+        if force_full:
+            print(f"Full update for {name} ({code})...")
+            df = fetch_data(code, start_date=default_start_date)
+            if df is not None and not df.empty:
                 df.to_csv(file_path)
                 print(f"Saved {name} ({code}) to {file_path}")
-        elif existing_df is not None:
-             print(f"No new data found for {name} ({code}).")
+            else:
+                 print(f"Failed to fetch data for {name} ({code})")
         else:
-            print(f"Failed to fetch data for {name} ({code})")
+            # 增量更新模式
+            if os.path.exists(file_path):
+                try:
+                    existing_df = pd.read_csv(file_path, index_col='date', parse_dates=True)
+                    if not existing_df.empty:
+                        last_date = existing_df.index.max()
+                        start_date_str = last_date.strftime("%Y%m%d")
+                        print(f"Incremental update for {name} ({code}) from {start_date_str}...")
+                        
+                        new_df = fetch_data(code, start_date=start_date_str)
+                        
+                        if new_df is not None and not new_df.empty:
+                            # 过滤掉已经存在的日期
+                            new_df = new_df[new_df.index > last_date]
+                            
+                            if not new_df.empty:
+                                df = pd.concat([existing_df, new_df])
+                                df = df[~df.index.duplicated(keep='last')]
+                                df = df.sort_index()
+                                df.to_csv(file_path)
+                                print(f"Updated {name} ({code}). Added {len(new_df)} records.")
+                            else:
+                                print(f"No new records for {name} ({code}).")
+                        else:
+                             print(f"No new data fetched for {name} ({code}).")
+                    else:
+                        # 文件为空，全量
+                        print(f"File empty for {name} ({code}). Full update...")
+                        df = fetch_data(code, start_date=default_start_date)
+                        if df is not None:
+                            df.to_csv(file_path)
+                            print(f"Saved {name} ({code}) to {file_path}")
+                except Exception as e:
+                    print(f"Error reading {file_path}: {e}. Fallback to full update.")
+                    df = fetch_data(code, start_date=default_start_date)
+                    if df is not None:
+                        df.to_csv(file_path)
+                        print(f"Saved {name} ({code}) to {file_path}")
+            else:
+                # 文件不存在，全量
+                print(f"File not found for {name} ({code}). Full update...")
+                df = fetch_data(code, start_date=default_start_date)
+                if df is not None:
+                    df.to_csv(file_path)
+                    print(f"Saved {name} ({code}) to {file_path}")
         
         # 避免请求过快
         time.sleep(0.5)
