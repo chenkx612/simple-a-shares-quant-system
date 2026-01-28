@@ -2,8 +2,46 @@ import akshare as ak
 import pandas as pd
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from .config import ASSET_CODES, DATA_DIR
+
+_TRADE_DATES_CACHE = None
+
+def get_latest_valid_trading_date():
+    """
+    获取最近一个可获取完整数据的交易日
+    """
+    global _TRADE_DATES_CACHE
+    try:
+        if _TRADE_DATES_CACHE is None:
+             trade_df = ak.tool_trade_date_hist_sina()
+             _TRADE_DATES_CACHE = pd.to_datetime(trade_df['trade_date']).dt.date.tolist()
+        
+        trade_dates = _TRADE_DATES_CACHE
+        if not trade_dates:
+            return None
+            
+        now = datetime.now()
+        today = now.date()
+        
+        # 找到 <= today 的交易日
+        valid_dates = [d for d in trade_dates if d <= today]
+        if not valid_dates:
+            return None
+        
+        latest_date = valid_dates[-1]
+        
+        # 如果最近交易日是今天，且现在还没收盘（< 16:00），则认为今天的数据还没准备好
+        if latest_date == today and now.hour < 16:
+            if len(valid_dates) > 1:
+                return valid_dates[-2]
+            else:
+                return None
+                
+        return latest_date
+    except Exception as e:
+        print(f"Warning: Failed to fetch trade dates: {e}")
+        return None
 
 def fetch_data(code, start_date="20160101", end_date=None):
     """
@@ -45,6 +83,8 @@ def update_all_data(force_full=False):
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
         
+    latest_valid_date = get_latest_valid_trading_date()
+    
     for name, code in ASSET_CODES.items():
         file_path = os.path.join(DATA_DIR, f"{code}.csv")
         
@@ -66,7 +106,15 @@ def update_all_data(force_full=False):
                     existing_df = pd.read_csv(file_path, index_col='date', parse_dates=True)
                     if not existing_df.empty:
                         last_date = existing_df.index.max()
-                        start_date_str = last_date.strftime("%Y%m%d")
+                        
+                        # Check if we already have the latest data
+                        if latest_valid_date is not None:
+                            if last_date.date() >= latest_valid_date:
+                                print(f"Skipping {name} ({code}): Already up to date ({last_date.date()})")
+                                continue
+                                
+                        start_date_obj = last_date + timedelta(days=1)
+                        start_date_str = start_date_obj.strftime("%Y%m%d")
                         print(f"Incremental update for {name} ({code}) from {start_date_str}...")
                         
                         new_df = fetch_data(code, start_date=start_date_str)
