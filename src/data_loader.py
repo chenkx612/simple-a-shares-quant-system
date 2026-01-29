@@ -82,15 +82,15 @@ def update_all_data(force_full=False):
     """
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
-        
-    latest_valid_date = get_latest_valid_trading_date()
-    
+
+    today = datetime.now().date()
+
     for name, code in ASSET_CODES.items():
         file_path = os.path.join(DATA_DIR, f"{code}.csv")
-        
+
         # 默认起始日期
         default_start_date = "20160101"
-        
+
         if force_full:
             print(f"Full update for {name} ({code})...")
             df = fetch_data(code, start_date=default_start_date)
@@ -106,13 +106,13 @@ def update_all_data(force_full=False):
                     existing_df = pd.read_csv(file_path, index_col='date', parse_dates=True)
                     if not existing_df.empty:
                         last_date = existing_df.index.max()
-                        
-                        # Check if we already have the latest data
-                        if latest_valid_date is not None:
-                            if last_date.date() >= latest_valid_date:
-                                print(f"Skipping {name} ({code}): Already up to date ({last_date.date()})")
-                                continue
-                                
+
+                        # 只有当本地数据已经是今天时才跳过
+                        # 不再依赖交易日历API，避免因API延迟导致漏更新
+                        if last_date.date() >= today:
+                            print(f"Skipping {name} ({code}): Already up to date ({last_date.date()})")
+                            continue
+
                         start_date_obj = last_date + timedelta(days=1)
                         start_date_str = start_date_obj.strftime("%Y%m%d")
                         print(f"Incremental update for {name} ({code}) from {start_date_str}...")
