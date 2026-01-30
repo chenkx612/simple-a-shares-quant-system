@@ -100,9 +100,9 @@ def optimize_smart_params():
 
 def optimize_stop_loss_params():
     """Grid search optimization for stop-loss rotation strategy parameters."""
-    m_values = [3, 4, 5, 6]
+    m_values = [3, 4, 5, 10]
     n_values = [10, 20, 30, 60]
-    stop_loss_values = [0.03, 0.05, 0.07, 0.10]
+    stop_loss_values = [0.05, 0.06, 0.07, 0.10]
 
     print(f"\nRunning Stop-Loss Rotation Optimization...")
     print(f"Fixed Parameters: K={STOP_LOSS_K}, Corr Threshold={STOP_LOSS_CORR_THRESHOLD}")
