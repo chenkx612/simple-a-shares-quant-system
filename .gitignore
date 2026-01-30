@@ -1,5 +1,6 @@
 __pycache__/
 AGENTS.md
+CLAUDE.md
 temp/
 *.csv
 .claude
