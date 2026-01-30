@@ -64,4 +64,4 @@ STOP_LOSS_M = 3  # 持有资产数量
 STOP_LOSS_N = 30  # 因子计算窗口 (收益/波动)
 STOP_LOSS_K = 100  # 相关性计算窗口
 STOP_LOSS_CORR_THRESHOLD = 0.9  # 相关性阈值
-STOP_LOSS_PCT = 0.07  # 止损阈值
+STOP_LOSS_PCT = 0.06  # 止损阈值
