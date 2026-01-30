@@ -27,7 +27,7 @@
 
 *   **选股因子**: **风险调整后动量 (Risk-Adjusted Momentum)**
     *   公式: $Factor = \frac{Return_{N}}{Volatility_{N}}$
-    *   其中 $Return_{N}$ 为过去 N 天（默认 30 天）的累计收益率，$Volatility_{N}$ 为过去 N 天日收益率的标准差。
+    *   其中 $Return_{N}$ 为过去 N 天（默认 30 天）的累计收益率, $Volatility_{N}$ 为过去 N 天日收益率的标准差。
 *   **相关性过滤 (Correlation Filter)**:
     *   为了避免持仓过于集中在同一类资产，策略引入相关性控制。
     *   计算过去 K 天（默认 100 天）的资产日收益率相关性矩阵。
