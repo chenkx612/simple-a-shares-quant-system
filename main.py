@@ -10,20 +10,44 @@ def handle_update_data():
     print("\n请选择更新模式:")
     print("1. 增量更新 (Incremental Update) - 仅更新最新数据，速度快")
     print("2. 全量更新 (Full Update) - 重新拉取所有历史数据，修正复权误差")
-    
+
     choice = input("请输入选项 (1-2): ").strip()
-    
+
     if choice == '1':
         print("\n正在进行增量更新...")
-        update_all_data(force_full=False)
+        force_full = False
     elif choice == '2':
         print("\n正在进行全量更新...")
-        update_all_data(force_full=True)
+        force_full = True
     else:
         print("无效选项，取消更新。")
         return
 
-    print("数据更新完成。")
+    failed_assets = update_all_data(force_full=force_full)
+
+    # 处理失败重试
+    while failed_assets:
+        print(f"\n警告: 以下 {len(failed_assets)} 个资产更新失败:")
+        for name, code in failed_assets:
+            print(f"  - {name} ({code})")
+
+        print("\n请选择操作:")
+        print("1. 重试失败的资产 (Retry)")
+        print("2. 跳过，继续 (Skip)")
+
+        retry_choice = input("请输入选项 (1-2): ").strip()
+
+        if retry_choice == '1':
+            print("\n正在重试...")
+            failed_assets = update_all_data(force_full=force_full, assets_to_update=failed_assets)
+        else:
+            print("跳过失败资产。")
+            break
+
+    if not failed_assets:
+        print("\n数据更新完成。")
+    else:
+        print(f"\n数据更新完成，但有 {len(failed_assets)} 个资产更新失败。")
 
 def momentum_menu():
     while True:
