@@ -1,10 +1,10 @@
 import sys
 from src.data_loader import update_all_data
 from src.backtest import BacktestEngine
-from src.optimize import optimize_n, optimize_smart_params
+from src.optimize import optimize_n, optimize_smart_params, optimize_stop_loss_params
 from src.trading_signal import get_trading_signal
-from src.config import DEFAULT_N, PORTFOLIOS, SMART_M, SMART_N, SMART_K, CORR_THRESHOLD
-from src.strategy import MomentumStrategy, SmartRotationStrategy
+from src.config import DEFAULT_N, PORTFOLIOS, SMART_M, SMART_N, SMART_K, CORR_THRESHOLD, STOP_LOSS_M, STOP_LOSS_N, STOP_LOSS_K, STOP_LOSS_CORR_THRESHOLD, STOP_LOSS_PCT
+from src.strategy import MomentumStrategy, SmartRotationStrategy, StopLossRotationStrategy
 
 def handle_update_data():
     print("\n请选择更新模式:")
@@ -109,6 +109,56 @@ def smart_rotation_menu():
         else:
             print("无效选项，请重试。")
 
+def stop_loss_rotation_menu():
+    while True:
+        print("\n" + "="*30)
+        print("   止损轮动策略 (Stop Loss Rotation)   ")
+        print("="*30)
+        print("1. 运行回测 (Run Backtest)")
+        print("2. 优化参数 (Optimize Params)")
+        print("3. 获取实盘建议 (Get Trading Signal)")
+        print("4. 更新数据 (Update Data)")
+        print("0. 返回主菜单 (Back)")
+        print("="*30)
+
+        choice = input("请输入选项 (0-4): ").strip()
+
+        if choice == '1':
+            print(f"\n正在运行止损轮动策略回测 (M={STOP_LOSS_M}, N={STOP_LOSS_N}, K={STOP_LOSS_K}, SL={STOP_LOSS_PCT:.0%})...")
+            engine = BacktestEngine()
+            strategy = StopLossRotationStrategy(
+                m=STOP_LOSS_M, n=STOP_LOSS_N, k=STOP_LOSS_K,
+                corr_threshold=STOP_LOSS_CORR_THRESHOLD, stop_loss_pct=STOP_LOSS_PCT
+            )
+            engine.run(strategy)
+            metrics = engine.get_metrics()
+            print("\n回测结果:")
+            for k, v in metrics.items():
+                val = f"{v:.2%}" if k != "Sharpe Ratio" else f"{v:.2f}"
+                print(f"{k}: {val}")
+
+        elif choice == '2':
+            print("\n正在优化止损轮动参数...")
+            best_params, _ = optimize_stop_loss_params()
+            print(f"\n建议: 请手动更新 src/config.py 中的 STOP_LOSS_M = {best_params[0]}, STOP_LOSS_N = {best_params[1]}, STOP_LOSS_PCT = {best_params[2]}")
+
+        elif choice == '3':
+             print("\n正在获取实盘建议...")
+             get_trading_signal(
+                 strategy_type='stop_loss_rotation',
+                 m=STOP_LOSS_M, n=STOP_LOSS_N, k=STOP_LOSS_K,
+                 corr_threshold=STOP_LOSS_CORR_THRESHOLD, stop_loss_pct=STOP_LOSS_PCT,
+                 update=True
+             )
+
+        elif choice == '4':
+            handle_update_data()
+
+        elif choice == '0':
+            break
+        else:
+            print("无效选项，请重试。")
+
 def main():
     while True:
         print("\n" + "="*30)
@@ -116,17 +166,20 @@ def main():
         print("="*30)
         print("1. 动量策略 (Momentum Strategy)")
         print("2. 智能轮动策略 (Smart Rotation)")
-        print("3. 更新数据 (Update All Data)")
+        print("3. 止损轮动策略 (Stop Loss Rotation)")
+        print("4. 更新数据 (Update All Data)")
         print("0. 退出 (Exit)")
         print("="*30)
-        
-        choice = input("请输入选项 (0-3): ").strip()
-        
+
+        choice = input("请输入选项 (0-4): ").strip()
+
         if choice == '1':
             momentum_menu()
         elif choice == '2':
             smart_rotation_menu()
         elif choice == '3':
+            stop_loss_rotation_menu()
+        elif choice == '4':
             handle_update_data()
         elif choice == '0':
             print("退出系统。")

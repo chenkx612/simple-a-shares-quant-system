@@ -246,8 +246,132 @@ class SmartRotationStrategy(Strategy):
             selected = self.signals[prev_date]
             if not selected:
                 return {}
-            
+
             weight = 1.0 / len(selected)
             return {asset: weight for asset in selected}
-            
+
+        return {}
+
+class StopLossRotationStrategy(Strategy):
+    """
+    止损轮动策略：在 SmartRotationStrategy 基础上增加止损机制。
+    当某资产单日跌幅超过 stop_loss_pct，次日信号中排除该资产。
+    """
+    def __init__(self, m=3, n=30, k=100, corr_threshold=0.9, stop_loss_pct=0.05):
+        super().__init__()
+        self.m = m
+        self.n = n
+        self.k = k
+        self.corr_threshold = corr_threshold
+        self.stop_loss_pct = stop_loss_pct
+        self.signals = {}  # Date -> [selected_assets]
+        self.stopped_assets_log = {}  # Date -> set of stopped assets (for debugging)
+
+    def on_data_loaded(self):
+        # 1. Align Close Prices
+        dfs = []
+        for asset_key, df in self.data_map.items():
+            if 'close' in df.columns:
+                s = df['close'].rename(asset_key)
+                dfs.append(s)
+
+        if not dfs:
+            return
+
+        prices = pd.concat(dfs, axis=1).sort_index().ffill()
+
+        # 2. Calculate Daily Returns
+        daily_rets = prices.pct_change().fillna(0)
+
+        # 3. Calculate Factor: Return / Volatility over past n days
+        rolling_return = prices / prices.shift(self.n) - 1
+        rolling_vol = daily_rets.rolling(self.n).std()
+        self.factors = rolling_return / rolling_vol.replace(0, np.nan)
+
+        # 4. Calculate Rolling Correlations
+        rolling_corr = daily_rets.rolling(self.k).corr()
+
+        # 5. Generate Signals with Stop-Loss Logic
+        start_idx = max(self.n, self.k)
+        valid_dates = prices.index[start_idx:]
+
+        prev_selected = []  # Track previously selected assets
+
+        for date in valid_dates:
+            if date not in self.factors.index:
+                continue
+
+            # 5a. Check stop-loss: if any previously selected asset dropped > threshold
+            stopped_assets = set()
+            if prev_selected:
+                for asset in prev_selected:
+                    if asset in daily_rets.columns:
+                        daily_ret = daily_rets.loc[date, asset]
+                        if daily_ret < -self.stop_loss_pct:
+                            stopped_assets.add(asset)
+
+            self.stopped_assets_log[date] = stopped_assets
+
+            # 5b. Get factors, excluding stopped assets
+            day_factors = self.factors.loc[date].dropna()
+            day_factors = day_factors.drop(stopped_assets, errors='ignore')
+
+            if day_factors.empty:
+                prev_selected = []
+                continue
+
+            # 5c. Sort by factor descending
+            sorted_assets = day_factors.sort_values(ascending=False).index.tolist()
+
+            selected = []
+
+            # Get correlation matrix for this date
+            try:
+                curr_corr = rolling_corr.loc[date]
+            except KeyError:
+                prev_selected = []
+                continue
+
+            # 5d. Select top M assets with correlation filtering
+            for asset in sorted_assets:
+                if len(selected) >= self.m:
+                    break
+
+                is_correlated = False
+                for selected_asset in selected:
+                    if asset in curr_corr.index and selected_asset in curr_corr.columns:
+                        c = curr_corr.loc[asset, selected_asset]
+                        if c > self.corr_threshold:
+                            is_correlated = True
+                            break
+
+                if not is_correlated:
+                    selected.append(asset)
+
+            self.signals[date] = selected
+            prev_selected = selected
+
+    def get_target_weights(self, date):
+        # Use signal from previous day (T-1 signal -> T open execution)
+        if self.dates is None:
+             return {}
+
+        try:
+            idx = self.dates.get_loc(date)
+        except (ValueError, KeyError):
+            return {}
+
+        if idx == 0:
+            return {}
+
+        prev_date = self.dates[idx - 1]
+
+        if prev_date in self.signals:
+            selected = self.signals[prev_date]
+            if not selected:
+                return {}
+
+            weight = 1.0 / len(selected)
+            return {asset: weight for asset in selected}
+
         return {}

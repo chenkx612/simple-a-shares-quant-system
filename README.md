@@ -1,10 +1,10 @@
 # Simple A-Shares Quant System
 
-个人量化投资项目，基于 Python 实现的动量轮动策略量化系统。本项目包含**场景轮动**与**智能因子轮动**两套核心策略，旨在不同市场环境下捕捉收益并控制回撤。
+个人量化投资项目，基于 Python 实现的动量轮动策略量化系统。本项目包含**场景轮动**、**智能因子轮动**与**止损轮动**三套核心策略，旨在不同市场环境下捕捉收益并控制回撤。
 
 ## 核心策略算法
 
-本项目实现了两套基于动量的轮动策略，分别适用于宏观场景切换和个股/ETF精细化选择。
+本项目实现了三套基于动量的轮动策略，分别适用于宏观场景切换、个股/ETF精细化选择以及带风控的轮动配置。
 
 ### 1. 场景轮动策略 (Scenario Momentum)
 
@@ -38,6 +38,21 @@
         4.  直到选满 M 只（默认 3 只）资产。
 *   **权重分配**: 等权重持有入选资产。
 
+### 3. 止损轮动策略 (Stop Loss Rotation)
+
+该策略在智能因子轮动的基础上增加了止损机制，当持仓资产单日跌幅超过阈值时，次日开盘自动平仓该资产。
+
+*   **核心逻辑**: 继承智能因子轮动的选股逻辑，同时追踪已选资产的日内表现。
+*   **止损规则**:
+    *   若 T 日某持仓资产跌幅超过止损阈值（默认 5%），则 T+1 日信号中排除该资产。
+    *   被止损的资产在当期选股中被排除，由其他符合条件的资产替补。
+*   **参数配置**:
+    *   `M`: 持有资产数量（默认 3）
+    *   `N`: 因子计算窗口（默认 30 天）
+    *   `K`: 相关性计算窗口（默认 100 天）
+    *   `stop_loss_pct`: 止损阈值（默认 5%）
+*   **适用场景**: 适合波动较大的市场环境，通过止损机制控制单资产极端回撤风险。
+
 ## 回测引擎特性
 
 *   **事件驱动**: 模拟真实交易时序，T 日收盘生成信号，T+1 日开盘价成交。
@@ -52,6 +67,14 @@
 pip install -r requirements.txt
 ```
 
+### 交互式菜单系统
+
+推荐使用交互式菜单系统，支持所有策略的回测、优化和实盘建议：
+
+```bash
+python main.py
+```
+
 ### 运行实盘建议
 
 生成次日持仓建议（支持选择策略类型）：
@@ -62,6 +85,9 @@ python -m src.trading_signal
 
 # 运行智能因子轮动策略
 python -m src.trading_signal --strategy smart_rotation --m 3 --n 30
+
+# 运行止损轮动策略
+python -m src.trading_signal --strategy stop_loss_rotation --m 3 --n 30 --stop_loss_pct 0.05
 ```
 
 ### 运行回测
@@ -80,7 +106,7 @@ python -m src.data_loader
 
 ## 目录结构
 
-*   `src/strategy.py`: 策略核心逻辑实现 (`MomentumStrategy`, `SmartRotationStrategy`)
+*   `src/strategy.py`: 策略核心逻辑实现 (`MomentumStrategy`, `SmartRotationStrategy`, `StopLossRotationStrategy`)
 *   `src/backtest.py`: 回测引擎 (`BacktestEngine`)
 *   `src/config.py`: 资产代码映射与组合配置
 *   `src/trading_signal.py`: 实盘信号生成入口

@@ -56,5 +56,12 @@ COMMISSION_RATE = 0.0003 # 双边佣金万分之三
 # 智能轮动策略参数
 SMART_M = 3 # 持有资产数量
 SMART_N = 30 # 因子计算窗口 (收益/波动)
-SMART_K = 100 # 相关性计算窗口 
+SMART_K = 100 # 相关性计算窗口
 CORR_THRESHOLD = 0.9 # 相关性阈值
+
+# 止损轮动策略参数
+STOP_LOSS_M = 3  # 持有资产数量
+STOP_LOSS_N = 30  # 因子计算窗口 (收益/波动)
+STOP_LOSS_K = 100  # 相关性计算窗口
+STOP_LOSS_CORR_THRESHOLD = 0.9  # 相关性阈值
+STOP_LOSS_PCT = 0.07  # 止损阈值
