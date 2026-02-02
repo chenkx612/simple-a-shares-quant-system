@@ -1,10 +1,10 @@
 import sys
 from src.data_loader import update_all_data
 from src.backtest import BacktestEngine
-from src.optimize import optimize_n, optimize_smart_params, optimize_stop_loss_params
+from src.optimize import optimize_smart_params, optimize_stop_loss_params
 from src.trading_signal import get_trading_signal
-from src.config import DEFAULT_N, PORTFOLIOS, SMART_M, SMART_N, SMART_K, CORR_THRESHOLD, STOP_LOSS_M, STOP_LOSS_N, STOP_LOSS_K, STOP_LOSS_CORR_THRESHOLD, STOP_LOSS_PCT
-from src.strategy import MomentumStrategy, SmartRotationStrategy, StopLossRotationStrategy
+from src.config import SMART_M, SMART_N, SMART_K, CORR_THRESHOLD, STOP_LOSS_M, STOP_LOSS_N, STOP_LOSS_K, STOP_LOSS_CORR_THRESHOLD, STOP_LOSS_PCT
+from src.strategy import SmartRotationStrategy, StopLossRotationStrategy
 
 def handle_update_data():
     print("\n请选择更新模式:")
@@ -48,48 +48,6 @@ def handle_update_data():
         print("\n数据更新完成。")
     else:
         print(f"\n数据更新完成，但有 {len(failed_assets)} 个资产更新失败。")
-
-def momentum_menu():
-    while True:
-        print("\n" + "="*30)
-        print("   动量策略 (Momentum Strategy)   ")
-        print("="*30)
-        print("1. 运行回测 (Run Backtest)")
-        print("2. 优化参数 (Optimize Params)")
-        print("3. 获取实盘建议 (Get Trading Signal)")
-        print("4. 更新数据 (Update Data)")
-        print("0. 返回主菜单 (Back)")
-        print("="*30)
-        
-        choice = input("请输入选项 (0-4): ").strip()
-        
-        if choice == '1':
-            print(f"\n正在运行动量策略回测 (N={DEFAULT_N})...")
-            engine = BacktestEngine()
-            strategy = MomentumStrategy(portfolios=PORTFOLIOS, n=DEFAULT_N)
-            engine.run(strategy)
-            metrics = engine.get_metrics()
-            print("\n回测结果:")
-            for k, v in metrics.items():
-                val = f"{v:.2%}" if k != "Sharpe Ratio" else f"{v:.2f}"
-                print(f"{k}: {val}")
-                
-        elif choice == '2':
-            print("\n正在优化参数...")
-            best_n, _ = optimize_n()
-            print(f"\n建议: 请手动更新 src/config.py 中的 DEFAULT_N = {best_n}")
-            
-        elif choice == '3':
-             print("\n正在获取实盘建议...")
-             get_trading_signal(strategy_type='momentum', n=DEFAULT_N, update=True)
-             
-        elif choice == '4':
-            handle_update_data()
-            
-        elif choice == '0':
-            break
-        else:
-            print("无效选项，请重试。")
 
 def smart_rotation_menu():
     while True:
@@ -188,22 +146,19 @@ def main():
         print("\n" + "="*30)
         print("   个人量化投资系统   ")
         print("="*30)
-        print("1. 动量策略 (Momentum Strategy)")
-        print("2. 智能轮动策略 (Smart Rotation)")
-        print("3. 止损轮动策略 (Stop Loss Rotation)")
-        print("4. 更新数据 (Update All Data)")
+        print("1. 智能轮动策略 (Smart Rotation)")
+        print("2. 止损轮动策略 (Stop Loss Rotation)")
+        print("3. 更新数据 (Update All Data)")
         print("0. 退出 (Exit)")
         print("="*30)
 
-        choice = input("请输入选项 (0-4): ").strip()
+        choice = input("请输入选项 (0-3): ").strip()
 
         if choice == '1':
-            momentum_menu()
-        elif choice == '2':
             smart_rotation_menu()
-        elif choice == '3':
+        elif choice == '2':
             stop_loss_rotation_menu()
-        elif choice == '4':
+        elif choice == '3':
             handle_update_data()
         elif choice == '0':
             print("退出系统。")

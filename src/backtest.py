@@ -201,15 +201,15 @@ class BacktestEngine:
         }
 
 if __name__ == "__main__":
-    from .strategy import MomentumStrategy
-    from .config import PORTFOLIOS, DEFAULT_N
-    
+    from .strategy import SmartRotationStrategy
+    from .config import SMART_M, SMART_N, SMART_K, CORR_THRESHOLD
+
     engine = BacktestEngine()
-    strategy = MomentumStrategy(portfolios=PORTFOLIOS, n=DEFAULT_N)
-    
+    strategy = SmartRotationStrategy(m=SMART_M, n=SMART_N, k=SMART_K, corr_threshold=CORR_THRESHOLD)
+
     result = engine.run(strategy)
     metrics = engine.get_metrics()
-    
+
     print("\nBacktest Results:")
     for k, v in metrics.items():
         print(f"{k}: {v:.2%}" if k != "Sharpe Ratio" else f"{k}: {v:.2f}")

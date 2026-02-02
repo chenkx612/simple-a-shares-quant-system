@@ -1,27 +1,12 @@
 # Simple A-Shares Quant System
 
-个人量化投资项目，基于 Python 实现的动量轮动策略量化系统。本项目包含**场景轮动**、**智能因子轮动**与**止损轮动**三套核心策略，旨在不同市场环境下捕捉收益并控制回撤。
+个人量化投资项目，基于 Python 实现的动量轮动策略量化系统。本项目包含**智能因子轮动**与**止损轮动**两套核心策略，旨在不同市场环境下捕捉收益并控制回撤。
 
 ## 核心策略算法
 
-本项目实现了三套基于动量的轮动策略，分别适用于宏观场景切换、个股/ETF精细化选择以及带风控的轮动配置。
+本项目实现了两套基于动量的轮动策略，分别适用于个股/ETF精细化选择以及带风控的轮动配置。
 
-### 1. 场景轮动策略 (Scenario Momentum)
-
-该策略将市场划分为四种宏观情景，根据预设的资产组合在过去 N 天的收益表现进行轮动。
-
-*   **核心逻辑**: 计算四个预设组合过去 N 天（默认 20 天）的累计收益率，每日收盘后选择收益率最高的组合，于次日开盘全仓切换。
-*   **组合定义**:
-    *   **大涨 (Bull Surge)**: 进攻型组合，由高弹性的科技类资产构成。
-        *   配置: 科创50 (30%) + 恒生科技 (30%) + 纳指ETF (40%)
-    *   **慢牛 (Slow Bull)**: 平衡型组合，聚焦中美日核心宽基指数。
-        *   配置: 沪深300 (40%) + 日经ETF (20%) + 标普500 (40%)
-    *   **慢熊 (Slow Bear)**: 防御型组合，配置债券与红利资产。
-        *   配置: 30年国债 (30%) + 红利ETF (30%) + 美元债LOF (40%)
-    *   **恐慌 (Panic)**: 避险组合。
-        *   配置: 黄金ETF (40%) + 货币ETF (60%)
-
-### 2. 智能因子轮动策略 (Smart Factor Rotation)
+### 1. 智能因子轮动策略 (Smart Factor Rotation)
 
 该策略不依赖预设组合，而是直接在全资产池中进行选品，通过“收益/波动比”因子寻找高性价比资产，并利用相关性矩阵进行分散配置。
 
@@ -38,7 +23,7 @@
         4.  直到选满 M 只（默认 3 只）资产。
 *   **权重分配**: 等权重持有入选资产。
 
-### 3. 止损轮动策略 (Stop Loss Rotation)
+### 2. 止损轮动策略 (Stop Loss Rotation)
 
 该策略在智能因子轮动的基础上增加了止损机制，当持仓资产单日跌幅超过阈值时，次日开盘自动平仓该资产。
 
@@ -80,11 +65,8 @@ python main.py
 生成次日持仓建议（支持选择策略类型）：
 
 ```bash
-# 运行场景轮动策略 (默认)
+# 运行智能因子轮动策略 (默认)
 python -m src.trading_signal
-
-# 运行智能因子轮动策略
-python -m src.trading_signal --strategy smart_rotation --m 3 --n 30
 
 # 运行止损轮动策略
 python -m src.trading_signal --strategy stop_loss_rotation --m 3 --n 30 --stop_loss_pct 0.05
@@ -106,7 +88,7 @@ python -m src.data_loader
 
 ## 目录结构
 
-*   `src/strategy.py`: 策略核心逻辑实现 (`MomentumStrategy`, `SmartRotationStrategy`, `StopLossRotationStrategy`)
+*   `src/strategy.py`: 策略核心逻辑实现 (`SmartRotationStrategy`, `StopLossRotationStrategy`)
 *   `src/backtest.py`: 回测引擎 (`BacktestEngine`)
 *   `src/config.py`: 资产代码映射与组合配置
 *   `src/trading_signal.py`: 实盘信号生成入口
