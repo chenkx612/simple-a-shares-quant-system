@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 import pandas as pd
 import numpy as np
 
+from .config import SECTOR_ASSET_CODES
+
 class Strategy(ABC):
     def __init__(self):
         self.data_map = None
@@ -279,3 +281,26 @@ class StopLossRotationStrategy(Strategy):
             return {asset: weight for asset in selected}
 
         return {}
+
+
+class SectorRotationStrategy(StopLossRotationStrategy):
+    """
+    行业轮动策略：继承止损轮动策略，使用 A股行业ETF 资产池。
+    逻辑与 StopLossRotationStrategy 完全相同，仅限定资产池为 SECTOR_ASSET_CODES。
+    """
+    def __init__(self, m=3, n=30, k=100, corr_threshold=0.9, stop_loss_pct=0.06):
+        super().__init__(m=m, n=n, k=k, corr_threshold=corr_threshold, stop_loss_pct=stop_loss_pct)
+        self.sector_assets = set(SECTOR_ASSET_CODES.keys())
+
+    def on_data_loaded(self):
+        # 过滤 data_map，只保留 SECTOR_ASSET_CODES 中的资产
+        filtered_data_map = {k: v for k, v in self.data_map.items() if k in self.sector_assets}
+
+        # 临时替换 data_map，调用父类方法
+        original_data_map = self.data_map
+        self.data_map = filtered_data_map
+
+        super().on_data_loaded()
+
+        # 恢复原始 data_map
+        self.data_map = original_data_map

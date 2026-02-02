@@ -17,7 +17,6 @@ ASSET_CODES = {
     # "france": "513080",     # 法国ETF (欧洲互补)
     # "se_asia": "513730",    # 东南亚科技 (新兴市场动量)
     # # --- A股风格与细分行业 ---
-    # "zz1000": "512100",     # 中证1000 (小盘股，行情启动时弹性极高)
     # "chip": "159995",       # 芯片ETF (高波动、强进攻)
     # "energy": "159930",     # 能源ETF (与科技股负相关，抗通胀)
     # "bank": "512800",       # 银行ETF (低波动防御)
@@ -44,3 +43,20 @@ STOP_LOSS_N = 30  # 因子计算窗口 (收益/波动)
 STOP_LOSS_K = 100  # 相关性计算窗口
 STOP_LOSS_CORR_THRESHOLD = 0.9  # 相关性阈值
 STOP_LOSS_PCT = 0.06  # 止损阈值
+
+# 行业轮动策略资产池
+SECTOR_ASSET_CODES = {
+    # "zz1000": "512100",     # 中证1000 ETF
+    # "cyb": "159915",        # 创业板 ETF
+    # "chip": "512480",       # 半导体 ETF
+    # "securities": "512880", # 证券 ETF
+    "grid": "159326",       # 电网设备 ETF
+    "liquor": "512690",     # 酒 ETF
+}
+
+# 行业轮动策略参数（初始值与止损轮动相同）
+SECTOR_M = 3  # 持有资产数量
+SECTOR_N = 30  # 因子计算窗口 (收益/波动)
+SECTOR_K = 100  # 相关性计算窗口
+SECTOR_CORR_THRESHOLD = 0.9  # 相关性阈值
+SECTOR_STOP_LOSS_PCT = 0.07  # 止损阈值

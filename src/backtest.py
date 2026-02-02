@@ -5,18 +5,19 @@ from .data_loader import load_all_data
 from .strategy import Strategy
 
 class BacktestEngine:
-    def __init__(self, initial_capital=100000.0, commission_rate=COMMISSION_RATE, start_date=START_DATE):
+    def __init__(self, initial_capital=100000.0, commission_rate=COMMISSION_RATE, start_date=START_DATE, data_map=None):
         self.initial_capital = initial_capital
         self.commission_rate = commission_rate
         self.start_date = pd.Timestamp(start_date)
-        
-        self.data_map = load_all_data()
+
+        # 支持传入自定义 data_map，或使用默认资产池
+        self.data_map = data_map if data_map is not None else load_all_data()
         self.aligned_open = None
         self.aligned_close = None
         self.available_assets = []
-        
+
         self._prepare_data()
-        
+
         # Account State
         self.cash = initial_capital
         self.positions = {} # {asset_code: shares}

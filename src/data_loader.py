@@ -3,9 +3,20 @@ import pandas as pd
 import os
 import time
 from datetime import datetime, timedelta
-from .config import ASSET_CODES, DATA_DIR
+from .config import ASSET_CODES, SECTOR_ASSET_CODES, DATA_DIR
 
 _TRADE_DATES_CACHE = None
+
+
+def get_all_asset_codes():
+    """
+    合并所有资产池的代码，避免重复
+    返回: dict {asset_key: code}
+    """
+    all_codes = {}
+    all_codes.update(ASSET_CODES)
+    all_codes.update(SECTOR_ASSET_CODES)
+    return all_codes
 
 def get_latest_valid_trading_date():
     """
@@ -182,13 +193,17 @@ def update_all_data(force_full=False, assets_to_update=None):
     return failed_assets
 
 
-def load_all_data():
+def load_all_data(asset_codes=None):
     """
-    从本地加载所有数据
+    从本地加载数据
+    :param asset_codes: 要加载的资产字典 {name: code}。为 None 时加载默认资产池 (ASSET_CODES)。
     返回: dict {asset_key: dataframe}
     """
+    if asset_codes is None:
+        asset_codes = ASSET_CODES
+
     data_map = {}
-    for name, code in ASSET_CODES.items():
+    for name, code in asset_codes.items():
         file_path = os.path.join(DATA_DIR, f"{code}.csv")
         if os.path.exists(file_path):
             df = pd.read_csv(file_path, index_col='date', parse_dates=True)
