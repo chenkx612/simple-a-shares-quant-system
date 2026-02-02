@@ -23,6 +23,10 @@ class BacktestEngine:
         self.positions = {} # {asset_code: shares}
         self.history = [] # List of dicts recording daily state
 
+        # PnL tracking
+        self.asset_pnl = {}  # {asset: 累计已实现盈亏}
+        self.asset_cost_basis = {}  # {asset: 平均成本价}
+
     def _prepare_data(self):
         """
         Align data for all assets
@@ -82,7 +86,17 @@ class BacktestEngine:
                 'cash': self.cash,
                 'positions': self.positions.copy()
             })
-            
+
+        # 回测结束，计算未平仓资产的浮盈/浮亏
+        if self.history:
+            final_prices = self.aligned_close.iloc[-1]
+            for asset, shares in self.positions.items():
+                if shares > 0:
+                    price = final_prices.get(asset, 0)
+                    cost_basis = self.asset_cost_basis.get(asset, 0)
+                    unrealized_pnl = (price - cost_basis) * shares
+                    self.asset_pnl[asset] = self.asset_pnl.get(asset, 0) + unrealized_pnl
+
         return pd.DataFrame(self.history).set_index('date')
 
     def _rebalance(self, target_weights, current_prices):
@@ -102,8 +116,13 @@ class BacktestEngine:
                     price = current_prices.get(asset, 0)
                     if price > 0:
                         value = shares * price
-                        cost = value * self.commission_rate
-                        self.cash += value - cost
+                        commission = value * self.commission_rate
+                        # 计算已实现盈亏
+                        cost_basis = self.asset_cost_basis.get(asset, 0)
+                        realized_pnl = (price - cost_basis) * shares - commission
+                        self.asset_pnl[asset] = self.asset_pnl.get(asset, 0) + realized_pnl
+                        # 更新账户
+                        self.cash += value - commission
                         self.positions[asset] = 0
             return
 
@@ -131,25 +150,40 @@ class BacktestEngine:
         for asset, weight in target_weights.items():
             if asset not in current_prices or pd.isna(current_prices[asset]):
                 continue
-                
+
             target_val = current_equity * weight
             price = current_prices[asset]
-            
+
             if price <= 0: continue
-            
+
             target_shares = target_val / price
             current_shares = self.positions.get(asset, 0)
-            
+
             diff_shares = target_shares - current_shares
-            
+
             if diff_shares == 0:
                 continue
-                
+
             trade_val = diff_shares * price
-            cost = abs(trade_val) * self.commission_rate
-            
+            commission = abs(trade_val) * self.commission_rate
+
+            # 更新盈亏和成本基础
+            if diff_shares > 0:
+                # 买入：更新平均成本
+                old_cost = self.asset_cost_basis.get(asset, 0)
+                old_shares = current_shares
+                new_cost = (old_cost * old_shares + price * diff_shares) / (old_shares + diff_shares) if (old_shares + diff_shares) > 0 else 0
+                self.asset_cost_basis[asset] = new_cost
+                # 买入手续费计入已实现亏损
+                self.asset_pnl[asset] = self.asset_pnl.get(asset, 0) - commission
+            else:
+                # 卖出：计算已实现盈亏
+                cost_basis = self.asset_cost_basis.get(asset, 0)
+                realized_pnl = (price - cost_basis) * (-diff_shares) - commission
+                self.asset_pnl[asset] = self.asset_pnl.get(asset, 0) + realized_pnl
+
             # Update
-            self.cash -= (trade_val + cost)
+            self.cash -= (trade_val + commission)
             self.positions[asset] = current_shares + diff_shares
 
         # Handle assets that are not in target_weights (Sell them)
@@ -159,8 +193,13 @@ class BacktestEngine:
                 if price > 0:
                     shares = self.positions[asset]
                     value = shares * price
-                    cost = value * self.commission_rate
-                    self.cash += value - cost
+                    commission = value * self.commission_rate
+                    # 计算已实现盈亏
+                    cost_basis = self.asset_cost_basis.get(asset, 0)
+                    realized_pnl = (price - cost_basis) * shares - commission
+                    self.asset_pnl[asset] = self.asset_pnl.get(asset, 0) + realized_pnl
+                    # 更新账户
+                    self.cash += value - commission
                     self.positions[asset] = 0
 
     def _calculate_total_value(self, prices):
@@ -171,6 +210,19 @@ class BacktestEngine:
                 if not pd.isna(price):
                     val += shares * price
         return val
+
+    def get_asset_pnl(self) -> pd.DataFrame:
+        """返回每个资产的盈亏统计"""
+        records = []
+        for asset, pnl in self.asset_pnl.items():
+            records.append({
+                'asset': asset,
+                'total_pnl': pnl,
+                'contribution': pnl / self.initial_capital
+            })
+        if not records:
+            return pd.DataFrame(columns=['asset', 'total_pnl', 'contribution'])
+        return pd.DataFrame(records).sort_values('total_pnl', ascending=False)
 
     def get_metrics(self):
         if not self.history:
@@ -214,3 +266,10 @@ if __name__ == "__main__":
     print("\nBacktest Results:")
     for k, v in metrics.items():
         print(f"{k}: {v:.2%}" if k != "Sharpe Ratio" else f"{k}: {v:.2f}")
+
+    print("\nAsset PnL Contribution:")
+    asset_pnl = engine.get_asset_pnl()
+    if not asset_pnl.empty:
+        for _, row in asset_pnl.iterrows():
+            print(f"  {row['asset']}: {row['total_pnl']:+,.2f} ({row['contribution']:+.2%})")
+        print(f"  Total contribution: {asset_pnl['contribution'].sum():.2%}")

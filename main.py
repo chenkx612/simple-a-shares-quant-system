@@ -10,6 +10,15 @@ from src.config import (
 )
 from src.strategy import SmartRotationStrategy, StopLossRotationStrategy, SectorRotationStrategy
 
+def print_asset_pnl(engine):
+    """打印资产贡献明细"""
+    asset_pnl = engine.get_asset_pnl()
+    if not asset_pnl.empty:
+        print("\n资产贡献明细:")
+        for _, row in asset_pnl.iterrows():
+            print(f"  {row['asset']}: {row['total_pnl']:+,.2f} ({row['contribution']:+.2%})")
+        print(f"  合计贡献: {asset_pnl['contribution'].sum():.2%}")
+
 def handle_update_data(asset_codes=None, asset_pool_name="默认"):
     """
     更新数据通用函数
@@ -83,6 +92,7 @@ def smart_rotation_menu():
             for k, v in metrics.items():
                 val = f"{v:.2%}" if k != "Sharpe Ratio" else f"{v:.2f}"
                 print(f"{k}: {val}")
+            print_asset_pnl(engine)
         
         elif choice == '2':
             print("\n正在优化智能轮动参数...")
@@ -128,6 +138,7 @@ def stop_loss_rotation_menu():
             for k, v in metrics.items():
                 val = f"{v:.2%}" if k != "Sharpe Ratio" else f"{v:.2f}"
                 print(f"{k}: {val}")
+            print_asset_pnl(engine)
 
         elif choice == '2':
             print("\n正在优化止损轮动参数...")
@@ -180,6 +191,7 @@ def sector_rotation_menu():
             for k, v in metrics.items():
                 val = f"{v:.2%}" if k != "Sharpe Ratio" else f"{v:.2f}"
                 print(f"{k}: {val}")
+            print_asset_pnl(engine)
 
         elif choice == '2':
             print("\n正在优化行业轮动参数...")
