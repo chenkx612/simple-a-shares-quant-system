@@ -1,4 +1,4 @@
-import pandas as pd
+from itertools import product
 from .backtest import BacktestEngine
 from .strategy import SmartRotationStrategy, StopLossRotationStrategy, SectorRotationStrategy
 from .config import (
@@ -7,173 +7,141 @@ from .config import (
 )
 from .data_loader import load_all_data
 
-def optimize_smart_params():
-    # Optimization ranges
-    m_values = [3, 4, 5, 6, 10]
-    n_values = [10, 20, 30, 60, 100]
-    
-    print(f"\nRunning Smart Rotation Optimization...")
-    print(f"Fixed Parameters: K={SMART_K}, Corr Threshold={CORR_THRESHOLD}")
-    print(f"{'M':<3} | {'N':<5} | {'Ann. Ret':<10} | {'Sharpe':<8} | {'Max DD':<10} | {'Calmar':<8} | {'Total Ret':<10}")
-    print("-" * 70)
-    
-    best_calmar = -100
-    best_params = (2, 20) # Default fallback
-    results = []
-    
-    import warnings
-    
-    for m in m_values:
-        for n in n_values:
+
+class GridSearchOptimizer:
+    """通用网格搜索优化器"""
+
+    def __init__(self, strategy_class, param_grid, fixed_params=None,
+                 metric='calmar', data_map=None):
+        self.strategy_class = strategy_class
+        self.param_grid = param_grid
+        self.fixed_params = fixed_params or {}
+        self.metric = metric
+        self.data_map = data_map
+
+    def _iter_param_combinations(self):
+        """生成所有参数组合"""
+        keys = list(self.param_grid.keys())
+        values = [self.param_grid[k] for k in keys]
+        for combo in product(*values):
+            yield dict(zip(keys, combo))
+
+    def _compute_score(self, metrics):
+        """根据指定指标计算分数"""
+        if not metrics:
+            return -999
+        if self.metric == 'calmar':
+            max_dd = abs(metrics.get('Max Drawdown', 0))
+            return metrics['Annualized Return'] / max_dd if max_dd > 0.0001 else -999
+        elif self.metric == 'sharpe':
+            return metrics.get('Sharpe Ratio', -999)
+        elif self.metric == 'return':
+            return metrics.get('Annualized Return', -999)
+        return -999
+
+    def run(self, verbose=True):
+        """运行优化，返回 (best_params, all_results)"""
+        import warnings
+
+        best_score = -float('inf')
+        best_params = None
+        results = []
+
+        if verbose:
+            self._print_header()
+
+        for params in self._iter_param_combinations():
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                engine = BacktestEngine()
-                strategy = SmartRotationStrategy(m=m, n=n, k=SMART_K, corr_threshold=CORR_THRESHOLD)
+                engine = BacktestEngine(data_map=self.data_map)
+                strategy = self.strategy_class(**params, **self.fixed_params)
                 engine.run(strategy)
-                
+
             metrics = engine.get_metrics()
-            
-            if not metrics:
-                continue
-                
-            max_dd = abs(metrics['Max Drawdown'])
-            calmar = metrics['Annualized Return'] / max_dd if max_dd > 0.0001 else -999
-            
-            print(f"{m:<3} | {n:<5} | {metrics['Annualized Return']:<10.2%} | {metrics['Sharpe Ratio']:<8.2f} | {metrics['Max Drawdown']:<10.2%} | {calmar:<8.2f} | {metrics['Total Return']:<10.2%}")
-            
-            results.append({
-                "m": m,
-                "n": n,
-                "Calmar Ratio": calmar,
-                **metrics
-            })
-            
-            if calmar > best_calmar:
-                best_calmar = calmar
-                best_params = (m, n)
-    
-    print("-" * 70)
-    print(f"Best Parameters: M={best_params[0]}, N={best_params[1]} (Calmar: {best_calmar:.2f})")
-    return best_params, results
+            score = self._compute_score(metrics)
+
+            if verbose:
+                self._print_row(params, metrics, score)
+
+            if metrics:
+                results.append({"params": params, "score": score, **metrics})
+
+            if score > best_score:
+                best_score = score
+                best_params = params
+
+        if verbose:
+            self._print_footer(best_params, best_score)
+
+        return best_params, results
+
+    def _print_header(self):
+        param_names = list(self.param_grid.keys())
+        header = " | ".join(f"{p:<6}" for p in param_names)
+        print(f"\n{header} | {'Ann.Ret':<10} | {'Sharpe':<8} | {'MaxDD':<10} | {'Score':<8}")
+        print("-" * 70)
+
+    def _print_row(self, params, metrics, score):
+        if not metrics:
+            return
+        param_vals = " | ".join(f"{params[p]:<6}" for p in self.param_grid.keys())
+        print(f"{param_vals} | {metrics['Annualized Return']:<10.2%} | "
+              f"{metrics['Sharpe Ratio']:<8.2f} | {metrics['Max Drawdown']:<10.2%} | {score:<8.2f}")
+
+    def _print_footer(self, best_params, best_score):
+        print("-" * 70)
+        print(f"Best: {best_params} (Score: {best_score:.2f})")
+
+
+def optimize_smart_params():
+    """Grid search optimization for smart rotation strategy parameters."""
+    print(f"\nRunning Smart Rotation Optimization...")
+    print(f"Fixed Parameters: K={SMART_K}, Corr Threshold={CORR_THRESHOLD}")
+
+    optimizer = GridSearchOptimizer(
+        strategy_class=SmartRotationStrategy,
+        param_grid={'m': [3, 4, 5, 6, 10], 'n': [10, 20, 30, 60, 100]},
+        fixed_params={'k': SMART_K, 'corr_threshold': CORR_THRESHOLD}
+    )
+    return optimizer.run()
+
 
 def optimize_stop_loss_params():
     """Grid search optimization for stop-loss rotation strategy parameters."""
-    m_values = [3, 4, 5, 10]
-    n_values = [10, 20, 30, 60]
-    stop_loss_values = [0.05, 0.06, 0.07, 0.10]
-
     print(f"\nRunning Stop-Loss Rotation Optimization...")
     print(f"Fixed Parameters: K={STOP_LOSS_K}, Corr Threshold={STOP_LOSS_CORR_THRESHOLD}")
-    print(f"{'M':<3} | {'N':<5} | {'SL%':<6} | {'Ann. Ret':<10} | {'Sharpe':<8} | {'Max DD':<10} | {'Calmar':<8} | {'Total Ret':<10}")
-    print("-" * 85)
 
-    best_calmar = -100
-    best_params = (3, 30, 0.05)  # Default fallback
-    results = []
-
-    import warnings
-
-    for m in m_values:
-        for n in n_values:
-            for sl in stop_loss_values:
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    engine = BacktestEngine()
-                    strategy = StopLossRotationStrategy(
-                        m=m, n=n, k=STOP_LOSS_K,
-                        corr_threshold=STOP_LOSS_CORR_THRESHOLD,
-                        stop_loss_pct=sl
-                    )
-                    engine.run(strategy)
-
-                metrics = engine.get_metrics()
-
-                if not metrics:
-                    continue
-
-                max_dd = abs(metrics['Max Drawdown'])
-                calmar = metrics['Annualized Return'] / max_dd if max_dd > 0.0001 else -999
-
-                print(f"{m:<3} | {n:<5} | {sl:<6.0%} | {metrics['Annualized Return']:<10.2%} | {metrics['Sharpe Ratio']:<8.2f} | {metrics['Max Drawdown']:<10.2%} | {calmar:<8.2f} | {metrics['Total Return']:<10.2%}")
-
-                results.append({
-                    "m": m,
-                    "n": n,
-                    "stop_loss_pct": sl,
-                    "Calmar Ratio": calmar,
-                    **metrics
-                })
-
-                if calmar > best_calmar:
-                    best_calmar = calmar
-                    best_params = (m, n, sl)
-
-    print("-" * 85)
-    print(f"Best Parameters: M={best_params[0]}, N={best_params[1]}, Stop Loss={best_params[2]:.0%} (Calmar: {best_calmar:.2f})")
-    return best_params, results
+    optimizer = GridSearchOptimizer(
+        strategy_class=StopLossRotationStrategy,
+        param_grid={
+            'm': [3, 4, 5, 10],
+            'n': [10, 20, 30, 60],
+            'stop_loss_pct': [0.05, 0.06, 0.07, 0.10]
+        },
+        fixed_params={'k': STOP_LOSS_K, 'corr_threshold': STOP_LOSS_CORR_THRESHOLD}
+    )
+    return optimizer.run()
 
 
 def optimize_sector_params():
     """Grid search optimization for sector rotation strategy parameters."""
-    m_values = [3, 4, 5, 10]
-    n_values = [10, 20, 30, 60]
-    stop_loss_values = [0.05, 0.06, 0.07, 0.10]
-
     print(f"\nRunning Sector Rotation Optimization...")
     print(f"Fixed Parameters: K={SECTOR_K}, Corr Threshold={SECTOR_CORR_THRESHOLD}")
     print(f"Asset Pool: {list(SECTOR_ASSET_CODES.keys())}")
-    print(f"{'M':<3} | {'N':<5} | {'SL%':<6} | {'Ann. Ret':<10} | {'Sharpe':<8} | {'Max DD':<10} | {'Calmar':<8} | {'Total Ret':<10}")
-    print("-" * 85)
 
-    best_calmar = -100
-    best_params = (3, 30, 0.06)  # Default fallback
-    results = []
-
-    import warnings
-
-    # 加载行业ETF数据
     data_map = load_all_data(asset_codes=SECTOR_ASSET_CODES)
-
-    for m in m_values:
-        for n in n_values:
-            for sl in stop_loss_values:
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    engine = BacktestEngine(data_map=data_map)
-                    strategy = SectorRotationStrategy(
-                        m=m, n=n, k=SECTOR_K,
-                        corr_threshold=SECTOR_CORR_THRESHOLD,
-                        stop_loss_pct=sl
-                    )
-                    engine.run(strategy)
-
-                metrics = engine.get_metrics()
-
-                if not metrics:
-                    continue
-
-                max_dd = abs(metrics['Max Drawdown'])
-                calmar = metrics['Annualized Return'] / max_dd if max_dd > 0.0001 else -999
-
-                print(f"{m:<3} | {n:<5} | {sl:<6.0%} | {metrics['Annualized Return']:<10.2%} | {metrics['Sharpe Ratio']:<8.2f} | {metrics['Max Drawdown']:<10.2%} | {calmar:<8.2f} | {metrics['Total Return']:<10.2%}")
-
-                results.append({
-                    "m": m,
-                    "n": n,
-                    "stop_loss_pct": sl,
-                    "Calmar Ratio": calmar,
-                    **metrics
-                })
-
-                if calmar > best_calmar:
-                    best_calmar = calmar
-                    best_params = (m, n, sl)
-
-    print("-" * 85)
-    print(f"Best Parameters: M={best_params[0]}, N={best_params[1]}, Stop Loss={best_params[2]:.0%} (Calmar: {best_calmar:.2f})")
-    return best_params, results
+    optimizer = GridSearchOptimizer(
+        strategy_class=SectorRotationStrategy,
+        param_grid={
+            'm': [3, 4, 5, 10],
+            'n': [10, 20, 30, 60],
+            'stop_loss_pct': [0.05, 0.06, 0.07, 0.10]
+        },
+        fixed_params={'k': SECTOR_K, 'corr_threshold': SECTOR_CORR_THRESHOLD},
+        data_map=data_map
+    )
+    return optimizer.run()
 
 
 if __name__ == "__main__":
     optimize_smart_params()
-

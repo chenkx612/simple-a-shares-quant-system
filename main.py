@@ -97,7 +97,7 @@ def smart_rotation_menu():
         elif choice == '2':
             print("\n正在优化智能轮动参数...")
             best_params, _ = optimize_smart_params()
-            print(f"\n建议: 请手动更新 src/config.py 中的 SMART_M = {best_params[0]}, SMART_N = {best_params[1]}")
+            print(f"\n建议: 请手动更新 src/config.py 中的 SMART_M = {best_params['m']}, SMART_N = {best_params['n']}")
             
         elif choice == '3':
              print("\n正在获取实盘建议...")
@@ -143,7 +143,7 @@ def stop_loss_rotation_menu():
         elif choice == '2':
             print("\n正在优化止损轮动参数...")
             best_params, _ = optimize_stop_loss_params()
-            print(f"\n建议: 请手动更新 src/config.py 中的 STOP_LOSS_M = {best_params[0]}, STOP_LOSS_N = {best_params[1]}, STOP_LOSS_PCT = {best_params[2]}")
+            print(f"\n建议: 请手动更新 src/config.py 中的 STOP_LOSS_M = {best_params['m']}, STOP_LOSS_N = {best_params['n']}, STOP_LOSS_PCT = {best_params['stop_loss_pct']}")
 
         elif choice == '3':
              print("\n正在获取实盘建议...")
@@ -196,7 +196,7 @@ def sector_rotation_menu():
         elif choice == '2':
             print("\n正在优化行业轮动参数...")
             best_params, _ = optimize_sector_params()
-            print(f"\n建议: 请手动更新 src/config.py 中的 SECTOR_M = {best_params[0]}, SECTOR_N = {best_params[1]}, SECTOR_STOP_LOSS_PCT = {best_params[2]}")
+            print(f"\n建议: 请手动更新 src/config.py 中的 SECTOR_M = {best_params['m']}, SECTOR_N = {best_params['n']}, SECTOR_STOP_LOSS_PCT = {best_params['stop_loss_pct']}")
 
         elif choice == '3':
              print("\n正在获取实盘建议...")
