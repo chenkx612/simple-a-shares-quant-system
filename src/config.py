@@ -59,8 +59,8 @@ SECTOR_ASSET_CODES  = {
 }
 
 # 行业轮动策略参数（初始值与止损轮动相同）
-SECTOR_M = 3  # 持有资产数量
+SECTOR_M = 4  # 持有资产数量
 SECTOR_N = 10  # 因子计算窗口 (收益/波动)
 SECTOR_K = 100  # 相关性计算窗口
 SECTOR_CORR_THRESHOLD = 0.9  # 相关性阈值
-SECTOR_STOP_LOSS_PCT = 0.05  # 止损阈值
+SECTOR_STOP_LOSS_PCT = 0.06  # 止损阈值

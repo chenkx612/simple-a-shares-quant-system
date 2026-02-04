@@ -235,7 +235,7 @@ class BacktestEngine:
         days = len(df)
         ann_ret = (1 + total_ret) ** (252/days) - 1
         
-        rf = 0.02
+        rf = 0.01
         vol = df['returns'].std() * np.sqrt(252)
         sharpe = (ann_ret - rf) / vol if vol != 0 else 0
         

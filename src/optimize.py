@@ -12,12 +12,19 @@ class GridSearchOptimizer:
     """通用网格搜索优化器"""
 
     def __init__(self, strategy_class, param_grid, fixed_params=None,
-                 metric='calmar', data_map=None):
+                 metric='calmar', data_map=None, constraints=None):
         self.strategy_class = strategy_class
         self.param_grid = param_grid
         self.fixed_params = fixed_params or {}
         self.metric = metric
         self.data_map = data_map
+        self.constraints = constraints or []
+
+    def _check_constraints(self, metrics):
+        """检查所有约束是否满足"""
+        if not metrics:
+            return False
+        return all(c(metrics) for c in self.constraints)
 
     def _iter_param_combinations(self):
         """生成所有参数组合"""
@@ -59,14 +66,20 @@ class GridSearchOptimizer:
 
             metrics = engine.get_metrics()
             score = self._compute_score(metrics)
+            satisfies_constraints = self._check_constraints(metrics)
 
             if verbose:
-                self._print_row(params, metrics, score)
+                self._print_row(params, metrics, score, satisfies_constraints)
 
             if metrics:
-                results.append({"params": params, "score": score, **metrics})
+                results.append({
+                    "params": params,
+                    "score": score,
+                    "valid": satisfies_constraints,
+                    **metrics
+                })
 
-            if score > best_score:
+            if satisfies_constraints and score > best_score:
                 best_score = score
                 best_params = params
 
@@ -78,19 +91,25 @@ class GridSearchOptimizer:
     def _print_header(self):
         param_names = list(self.param_grid.keys())
         header = " | ".join(f"{p:<6}" for p in param_names)
-        print(f"\n{header} | {'Ann.Ret':<10} | {'Sharpe':<8} | {'MaxDD':<10} | {'Score':<8}")
-        print("-" * 70)
+        valid_col = " | Valid" if self.constraints else ""
+        print(f"\n{header} | {'Ann.Ret':<10} | {'Sharpe':<8} | {'MaxDD':<10} | {'Score':<8}{valid_col}")
+        print("-" * (70 + (8 if self.constraints else 0)))
 
-    def _print_row(self, params, metrics, score):
+    def _print_row(self, params, metrics, score, satisfies_constraints=True):
         if not metrics:
             return
         param_vals = " | ".join(f"{params[p]:<6}" for p in self.param_grid.keys())
+        valid_col = f" | {'✓' if satisfies_constraints else '✗':^5}" if self.constraints else ""
         print(f"{param_vals} | {metrics['Annualized Return']:<10.2%} | "
-              f"{metrics['Sharpe Ratio']:<8.2f} | {metrics['Max Drawdown']:<10.2%} | {score:<8.2f}")
+              f"{metrics['Sharpe Ratio']:<8.2f} | {metrics['Max Drawdown']:<10.2%} | {score:<8.2f}{valid_col}")
 
     def _print_footer(self, best_params, best_score):
-        print("-" * 70)
-        print(f"Best: {best_params} (Score: {best_score:.2f})")
+        print("-" * (70 + (8 if self.constraints else 0)))
+        constraint_label = " (constrained)" if self.constraints else ""
+        if best_params:
+            print(f"Best{constraint_label}: {best_params} (Score: {best_score:.2f})")
+        else:
+            print(f"No valid parameters found{constraint_label}.")
 
 
 def optimize_smart_params():
@@ -124,10 +143,17 @@ def optimize_stop_loss_params():
 
 
 def optimize_sector_params():
-    """Grid search optimization for sector rotation strategy parameters."""
-    print(f"\nRunning Sector Rotation Optimization...")
+    """Grid search optimization for sector rotation strategy parameters.
+
+    约束：|最大回撤| < 年化收益率
+    目标：最大化夏普率
+    """
+    print(f"\nRunning Sector Rotation Optimization (Sharpe, |MaxDD| < AnnRet)...")
     print(f"Fixed Parameters: K={SECTOR_K}, Corr Threshold={SECTOR_CORR_THRESHOLD}")
     print(f"Asset Pool: {list(SECTOR_ASSET_CODES.keys())}")
+
+    def dd_less_than_return(m):
+        return abs(m.get('Max Drawdown', 1)) < m.get('Annualized Return', 0)
 
     data_map = load_all_data(asset_codes=SECTOR_ASSET_CODES)
     optimizer = GridSearchOptimizer(
@@ -138,10 +164,11 @@ def optimize_sector_params():
             'stop_loss_pct': [0.05, 0.06, 0.07, 0.10]
         },
         fixed_params={'k': SECTOR_K, 'corr_threshold': SECTOR_CORR_THRESHOLD},
-        data_map=data_map
+        data_map=data_map,
+        metric='sharpe',
+        constraints=[dd_less_than_return]
     )
     return optimizer.run()
-
 
 if __name__ == "__main__":
     optimize_smart_params()
