@@ -147,9 +147,9 @@ def optimize_sector_params():
     optimizer = GridSearchOptimizer(
         strategy_class=SectorRotationStrategy,
         param_grid={
-            'm': [3, 4, 5, 10],
-            'n': [10, 20, 30, 60],
-            'stop_loss_pct': [0.05, 0.06, 0.07, 0.10]
+            'm': [3, 4, 5],
+            'n': [10, 15, 20, 25, 30],
+            'stop_loss_pct': [0.05, 0.06, 0.07, 0.08, 0.09, 0.10]
         },
         fixed_params={'k': SECTOR_K, 'corr_threshold': SECTOR_CORR_THRESHOLD},
         data_map=data_map,
