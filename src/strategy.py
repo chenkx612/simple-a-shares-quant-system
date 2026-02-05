@@ -48,7 +48,7 @@ class Strategy(ABC):
 class StopLossRotationStrategy(Strategy):
     """
     止损轮动策略：在 SmartRotationStrategy 基础上增加止损机制。
-    当某资产单日跌幅超过 stop_loss_pct，次日信号中排除该资产。
+    当某资产单日跌幅超过 stop_loss_pct, 次日信号中排除该资产。
     """
     def __init__(self, m=3, n=30, k=100, corr_threshold=0.9, stop_loss_pct=0.05):
         super().__init__()

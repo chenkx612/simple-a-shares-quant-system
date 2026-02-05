@@ -13,7 +13,7 @@ class GridSearchOptimizer:
     """通用网格搜索优化器"""
 
     def __init__(self, strategy_class, param_grid, fixed_params=None,
-                 metric='calmar', data_map=None, constraints=None):
+                 metric='sharpe', data_map=None, constraints=None):
         self.strategy_class = strategy_class
         self.param_grid = param_grid
         self.fixed_params = fixed_params or {}
@@ -121,11 +121,12 @@ def optimize_stop_loss_params():
     optimizer = GridSearchOptimizer(
         strategy_class=StopLossRotationStrategy,
         param_grid={
-            'm': [3, 4, 5, 10],
-            'n': [10, 20, 30, 60],
-            'stop_loss_pct': [0.05, 0.06, 0.07, 0.10]
+            'm': [3, 4, 5],
+            'n': [10, 15, 20, 30],
+            'stop_loss_pct': [0.05, 0.06, 0.07],
+            'corr_threshold': [0.7, 0.8, 0.9]
         },
-        fixed_params={'k': STOP_LOSS_K, 'corr_threshold': STOP_LOSS_CORR_THRESHOLD}
+        fixed_params={'k': STOP_LOSS_K}
     )
     return optimizer.run()
 
@@ -157,6 +158,7 @@ def optimize_sector_params():
         constraints=[dd_less_than_return]
     )
     return optimizer.run()
+
 
 def optimize_factor_floor_params():
     """Grid search optimization for factor floor rotation strategy parameters.
