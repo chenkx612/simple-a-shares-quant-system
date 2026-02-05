@@ -2,13 +2,13 @@ from abc import ABC, abstractmethod
 import pandas as pd
 import numpy as np
 
-from .config import SECTOR_ASSET_CODES
+from .config import ASSET_CODES, SECTOR_ASSET_CODES
 
 class Strategy(ABC):
     def __init__(self):
         self.data_map = None
         self.dates = None
-        
+
     def set_data(self, data_map, dates):
         """
         Set the data for the strategy.
@@ -25,15 +25,21 @@ class Strategy(ABC):
         """
         pass
 
+    @property
+    @abstractmethod
+    def asset_codes(self) -> dict:
+        """Return the asset codes mapping for this strategy."""
+        pass
+
     @abstractmethod
     def get_target_weights(self, date):
         """
         Return the target weights for the given date.
         The backtester will call this BEFORE market open to determine trades for the day.
-        
+
         Args:
             date: The current date (timestamp)
-            
+
         Returns:
             dict: {asset_code: target_weight} (sum should be <= 1.0)
         """
@@ -53,6 +59,10 @@ class StopLossRotationStrategy(Strategy):
         self.stop_loss_pct = stop_loss_pct
         self.signals = {}  # Date -> [selected_assets]
         self.stopped_assets_log = {}  # Date -> set of stopped assets (for debugging)
+
+    @property
+    def asset_codes(self):
+        return ASSET_CODES
 
     def on_data_loaded(self):
         # 1. Align Close Prices
@@ -172,6 +182,10 @@ class SectorRotationStrategy(StopLossRotationStrategy):
     def __init__(self, m=3, n=30, k=100, corr_threshold=0.9, stop_loss_pct=0.06):
         super().__init__(m=m, n=n, k=k, corr_threshold=corr_threshold, stop_loss_pct=stop_loss_pct)
         self.sector_assets = set(SECTOR_ASSET_CODES.keys())
+
+    @property
+    def asset_codes(self):
+        return SECTOR_ASSET_CODES
 
     def on_data_loaded(self):
         # 过滤 data_map，只保留 SECTOR_ASSET_CODES 中的资产
