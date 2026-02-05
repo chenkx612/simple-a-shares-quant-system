@@ -1,21 +1,20 @@
 from .config import (
-    ASSET_CODES, SMART_M, SMART_N, SMART_K, CORR_THRESHOLD,
+    ASSET_CODES,
     STOP_LOSS_M, STOP_LOSS_N, STOP_LOSS_K, STOP_LOSS_CORR_THRESHOLD, STOP_LOSS_PCT,
     SECTOR_ASSET_CODES, SECTOR_M, SECTOR_N, SECTOR_K, SECTOR_CORR_THRESHOLD, SECTOR_STOP_LOSS_PCT
 )
 from .data_loader import update_all_data, load_all_data
 from .backtest import BacktestEngine
-from .strategy import SmartRotationStrategy, StopLossRotationStrategy, SectorRotationStrategy
+from .strategy import StopLossRotationStrategy, SectorRotationStrategy
 import pandas as pd
 
-def get_trading_signal(strategy_type='smart_rotation', **kwargs):
+def get_trading_signal(strategy_type='stop_loss_rotation', **kwargs):
     """
     Generate trading signal for the next trading day.
 
     Args:
-        strategy_type (str): 'smart_rotation', 'stop_loss_rotation', or 'sector_rotation'
+        strategy_type (str): 'stop_loss_rotation' or 'sector_rotation'
         **kwargs: Strategy parameters
-            - For smart_rotation: m, n, k, corr_threshold (default: config values)
             - For stop_loss_rotation: m, n, k, corr_threshold, stop_loss_pct (default: config values)
             - For sector_rotation: m, n, k, corr_threshold, stop_loss_pct (default: SECTOR_* values)
             - Common: update (bool, default: True)
@@ -44,13 +43,7 @@ def get_trading_signal(strategy_type='smart_rotation', **kwargs):
 
     engine = BacktestEngine(start_date="20240101", data_map=data_map)
 
-    if strategy_type == 'smart_rotation':
-        m = kwargs.get('m', SMART_M)
-        n = kwargs.get('n', SMART_N)
-        k = kwargs.get('k', SMART_K)
-        corr_threshold = kwargs.get('corr_threshold', CORR_THRESHOLD)
-        strategy = SmartRotationStrategy(m=m, n=n, k=k, corr_threshold=corr_threshold)
-    elif strategy_type == 'stop_loss_rotation':
+    if strategy_type == 'stop_loss_rotation':
         m = kwargs.get('m', STOP_LOSS_M)
         n = kwargs.get('n', STOP_LOSS_N)
         k = kwargs.get('k', STOP_LOSS_K)
@@ -74,9 +67,7 @@ def get_trading_signal(strategy_type='smart_rotation', **kwargs):
     print("\n" + "="*50)
     print(f"TRADING SIGNAL for Next Trading Day")
 
-    if strategy_type == 'smart_rotation':
-        _print_smart_rotation_signal(strategy, kwargs.get('n', SMART_N), kwargs.get('k', SMART_K))
-    elif strategy_type == 'stop_loss_rotation':
+    if strategy_type == 'stop_loss_rotation':
         _print_stop_loss_rotation_signal(
             strategy,
             kwargs.get('n', STOP_LOSS_N),
@@ -92,48 +83,6 @@ def get_trading_signal(strategy_type='smart_rotation', **kwargs):
         )
 
     print("="*50)
-
-def _print_smart_rotation_signal(strategy, n, k):
-    # strategy.signals is a dict: Date -> [selected_assets]
-    # strategy.factors is a DataFrame: Date x Asset -> Factor Value
-    
-    if not strategy.signals:
-        print("Not enough data to calculate signal.")
-        return
-        
-    # Get the last date in signals
-    # Note: signals keys are dates where we have a signal
-    sorted_dates = sorted(strategy.signals.keys())
-    last_date = sorted_dates[-1]
-    selected_assets = strategy.signals[last_date]
-    
-    print(f"Data Date: {last_date.strftime('%Y-%m-%d')}")
-    print(f"Lookback Window (N): {n} days")
-    print(f"Correlation Window (K): {k} days")
-    print("-" * 50)
-    
-    if not selected_assets:
-        print("RECOMMENDATION: Cash (No assets selected)")
-        return
-        
-    print(f"RECOMMENDATION: Buy/Hold Selected Assets")
-    print("\nTarget Allocation (Equal Weight):")
-    
-    weight = 1.0 / len(selected_assets)
-    
-    # Also show factor values for context
-    if last_date in strategy.factors.index:
-        factors = strategy.factors.loc[last_date]
-        print(f"\nSelected Assets Details (Factor = Return/Vol):")
-        for asset in selected_assets:
-            code = ASSET_CODES.get(asset, "N/A")
-            factor_val = factors.get(asset, float('nan'))
-            print(f"  {asset:<10} ({code:<6}): {weight:.0%} (Factor: {factor_val:.4f})")
-            
-    else:
-        for asset in selected_assets:
-            code = ASSET_CODES.get(asset, "N/A")
-            print(f"  {asset:<10} ({code:<6}): {weight:.0%}")
 
 def _print_stop_loss_rotation_signal(strategy, n, k, stop_loss_pct):
     """Print trading signal for stop-loss rotation strategy."""
@@ -234,4 +183,4 @@ def _print_sector_rotation_signal(strategy, n, k, stop_loss_pct):
 
 
 if __name__ == "__main__":
-    get_trading_signal(strategy_type='smart_rotation')
+    get_trading_signal(strategy_type='stop_loss_rotation')

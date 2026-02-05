@@ -1,14 +1,14 @@
 import sys
 from src.data_loader import update_all_data, load_all_data
 from src.backtest import BacktestEngine
-from src.optimize import optimize_smart_params, optimize_stop_loss_params, optimize_sector_params
+from src.optimize import optimize_stop_loss_params, optimize_sector_params
 from src.trading_signal import get_trading_signal
 from src.config import (
-    ASSET_CODES, SMART_M, SMART_N, SMART_K, CORR_THRESHOLD,
+    ASSET_CODES,
     STOP_LOSS_M, STOP_LOSS_N, STOP_LOSS_K, STOP_LOSS_CORR_THRESHOLD, STOP_LOSS_PCT,
     SECTOR_ASSET_CODES, SECTOR_M, SECTOR_N, SECTOR_K, SECTOR_CORR_THRESHOLD, SECTOR_STOP_LOSS_PCT
 )
-from src.strategy import SmartRotationStrategy, StopLossRotationStrategy, SectorRotationStrategy
+from src.strategy import StopLossRotationStrategy, SectorRotationStrategy
 
 def print_asset_pnl(engine):
     """打印资产贡献明细"""
@@ -67,49 +67,6 @@ def handle_update_data(asset_codes=None, asset_pool_name="默认"):
         print("\n数据更新完成。")
     else:
         print(f"\n数据更新完成，但有 {len(failed_assets)} 个资产更新失败。")
-
-def smart_rotation_menu():
-    while True:
-        print("\n" + "="*30)
-        print("   智能轮动策略 (Smart Rotation)   ")
-        print("="*30)
-        print("1. 运行回测 (Run Backtest)")
-        print("2. 优化参数 (Optimize Params)")
-        print("3. 获取实盘建议 (Get Trading Signal)")
-        print("4. 更新数据 (Update Data)")
-        print("0. 返回主菜单 (Back)")
-        print("="*30)
-        
-        choice = input("请输入选项 (0-4): ").strip()
-        
-        if choice == '1':
-            print(f"\n正在运行智能轮动策略回测 (M={SMART_M}, N={SMART_N}, K={SMART_K})...")
-            engine = BacktestEngine()
-            strategy = SmartRotationStrategy(m=SMART_M, n=SMART_N, k=SMART_K, corr_threshold=CORR_THRESHOLD)
-            engine.run(strategy)
-            metrics = engine.get_metrics()
-            print("\n回测结果:")
-            for k, v in metrics.items():
-                val = f"{v:.2%}" if k != "Sharpe Ratio" else f"{v:.2f}"
-                print(f"{k}: {val}")
-            print_asset_pnl(engine)
-        
-        elif choice == '2':
-            print("\n正在优化智能轮动参数...")
-            best_params, _ = optimize_smart_params()
-            print(f"\n建议: 请手动更新 src/config.py 中的 SMART_M = {best_params['m']}, SMART_N = {best_params['n']}")
-            
-        elif choice == '3':
-             print("\n正在获取实盘建议...")
-             get_trading_signal(strategy_type='smart_rotation', m=SMART_M, n=SMART_N, k=SMART_K, corr_threshold=CORR_THRESHOLD, update=True)
-
-        elif choice == '4':
-            handle_update_data(asset_codes=ASSET_CODES, asset_pool_name="智能轮动")
-
-        elif choice == '0':
-            break
-        else:
-            print("无效选项，请重试。")
 
 def stop_loss_rotation_menu():
     while True:
@@ -221,19 +178,16 @@ def main():
         print("\n" + "="*30)
         print("   个人量化投资系统   ")
         print("="*30)
-        print("1. 智能轮动策略 (Smart Rotation)")
-        print("2. 止损轮动策略 (Stop Loss Rotation)")
-        print("3. 行业轮动策略 (Sector Rotation)")
+        print("1. 止损轮动策略 (Stop Loss Rotation)")
+        print("2. 行业轮动策略 (Sector Rotation)")
         print("0. 退出 (Exit)")
         print("="*30)
 
-        choice = input("请输入选项 (0-3): ").strip()
+        choice = input("请输入选项 (0-2): ").strip()
 
         if choice == '1':
-            smart_rotation_menu()
-        elif choice == '2':
             stop_loss_rotation_menu()
-        elif choice == '3':
+        elif choice == '2':
             sector_rotation_menu()
         elif choice == '0':
             print("退出系统。")

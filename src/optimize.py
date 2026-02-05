@@ -1,8 +1,8 @@
 from itertools import product
 from .backtest import BacktestEngine
-from .strategy import SmartRotationStrategy, StopLossRotationStrategy, SectorRotationStrategy
+from .strategy import StopLossRotationStrategy, SectorRotationStrategy
 from .config import (
-    SMART_K, CORR_THRESHOLD, STOP_LOSS_K, STOP_LOSS_CORR_THRESHOLD,
+    STOP_LOSS_K, STOP_LOSS_CORR_THRESHOLD,
     SECTOR_ASSET_CODES, SECTOR_K, SECTOR_CORR_THRESHOLD
 )
 from .data_loader import load_all_data
@@ -112,19 +112,6 @@ class GridSearchOptimizer:
             print(f"No valid parameters found{constraint_label}.")
 
 
-def optimize_smart_params():
-    """Grid search optimization for smart rotation strategy parameters."""
-    print(f"\nRunning Smart Rotation Optimization...")
-    print(f"Fixed Parameters: K={SMART_K}, Corr Threshold={CORR_THRESHOLD}")
-
-    optimizer = GridSearchOptimizer(
-        strategy_class=SmartRotationStrategy,
-        param_grid={'m': [3, 4, 5, 6, 10], 'n': [10, 20, 30, 60, 100]},
-        fixed_params={'k': SMART_K, 'corr_threshold': CORR_THRESHOLD}
-    )
-    return optimizer.run()
-
-
 def optimize_stop_loss_params():
     """Grid search optimization for stop-loss rotation strategy parameters."""
     print(f"\nRunning Stop-Loss Rotation Optimization...")
@@ -171,4 +158,4 @@ def optimize_sector_params():
     return optimizer.run()
 
 if __name__ == "__main__":
-    optimize_smart_params()
+    optimize_stop_loss_params()
