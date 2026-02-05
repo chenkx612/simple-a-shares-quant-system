@@ -1,9 +1,10 @@
 from itertools import product
 from .backtest import BacktestEngine
-from .strategy import StopLossRotationStrategy, SectorRotationStrategy
+from .strategy import StopLossRotationStrategy, SectorRotationStrategy, FactorFloorRotationStrategy
 from .config import (
     STOP_LOSS_K, STOP_LOSS_CORR_THRESHOLD,
-    SECTOR_ASSET_CODES, SECTOR_K, SECTOR_CORR_THRESHOLD
+    SECTOR_ASSET_CODES, SECTOR_K, SECTOR_CORR_THRESHOLD,
+    FACTOR_FLOOR_K, FACTOR_FLOOR_CORR_THRESHOLD
 )
 from .data_loader import load_all_data
 
@@ -156,6 +157,36 @@ def optimize_sector_params():
         constraints=[dd_less_than_return]
     )
     return optimizer.run()
+
+def optimize_factor_floor_params():
+    """Grid search optimization for factor floor rotation strategy parameters.
+
+    约束：|最大回撤| < 年化收益率
+    目标：最大化夏普率
+    """
+    print(f"\nRunning Factor Floor Rotation Optimization (Sharpe, |MaxDD| < AnnRet)...")
+    print(f"Fixed Parameters: K={FACTOR_FLOOR_K}, Corr Threshold={FACTOR_FLOOR_CORR_THRESHOLD}")
+    print(f"Asset Pool: {list(SECTOR_ASSET_CODES.keys())}")
+
+    def dd_less_than_return(m):
+        return abs(m.get('Max Drawdown', 1)) < m.get('Annualized Return', 0)
+
+    data_map = load_all_data(asset_codes=SECTOR_ASSET_CODES)
+    optimizer = GridSearchOptimizer(
+        strategy_class=FactorFloorRotationStrategy,
+        param_grid={
+            'm': [3, 4, 5],
+            'n': [10, 20, 30],
+            'stop_loss_pct': [0.05, 0.06, 0.07],
+            'factor_floor': [0.0, 0.1, 0.2, 0.3]
+        },
+        fixed_params={'k': FACTOR_FLOOR_K, 'corr_threshold': FACTOR_FLOOR_CORR_THRESHOLD},
+        data_map=data_map,
+        metric='sharpe',
+        constraints=[dd_less_than_return]
+    )
+    return optimizer.run()
+
 
 if __name__ == "__main__":
     optimize_stop_loss_params()

@@ -58,3 +58,11 @@ SECTOR_N = 10  # 因子计算窗口 (收益/波动)
 SECTOR_K = 100  # 相关性计算窗口
 SECTOR_CORR_THRESHOLD = 0.9  # 相关性阈值
 SECTOR_STOP_LOSS_PCT = 0.06  # 止损阈值
+
+# 因子下限轮动策略参数
+FACTOR_FLOOR_M = 4  # 持有资产数量
+FACTOR_FLOOR_N = 10  # 因子计算窗口 (收益/波动)
+FACTOR_FLOOR_K = 100  # 相关性计算窗口
+FACTOR_FLOOR_CORR_THRESHOLD = 0.9  # 相关性阈值
+FACTOR_FLOOR_STOP_LOSS_PCT = 0.06  # 止损阈值
+FACTOR_FLOOR_THRESHOLD = 0.0  # 因子下限，默认0（不过滤负因子）
