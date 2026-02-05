@@ -96,4 +96,4 @@ FACTOR_FLOOR_N = 25  # 因子计算窗口 (收益/波动)
 FACTOR_FLOOR_K = 100  # 相关性计算窗口
 FACTOR_FLOOR_CORR_THRESHOLD = 0.9  # 相关性阈值
 FACTOR_FLOOR_STOP_LOSS_PCT = 0.1  # 止损阈值
-FACTOR_FLOOR_THRESHOLD = 0.0  # 因子下限，默认0（不过滤负因子）
+FACTOR_FLOOR_THRESHOLD = -1.9  # 因子下限

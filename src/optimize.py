@@ -1,3 +1,4 @@
+import numpy as np
 from itertools import product
 from .backtest import BacktestEngine
 from .strategy import StopLossRotationStrategy, SectorRotationStrategy, FactorFloorRotationStrategy
@@ -177,10 +178,10 @@ def optimize_factor_floor_params():
     optimizer = GridSearchOptimizer(
         strategy_class=FactorFloorRotationStrategy,
         param_grid={
-            'm': [3, 4, 5],
-            'n': [10, 20, 30],
-            'stop_loss_pct': [0.05, 0.06, 0.07],
-            'factor_floor': [0.0, 0.1, 0.2, 0.3]
+            'm': [5],
+            'n': [25],
+            'stop_loss_pct': [0.1],
+            'factor_floor': np.arange(-2, 2.1, 0.1)
         },
         fixed_params={'k': FACTOR_FLOOR_K, 'corr_threshold': FACTOR_FLOOR_CORR_THRESHOLD},
         data_map=data_map,
