@@ -58,12 +58,12 @@ def handle_update_data(asset_codes=None, asset_pool_name="默认"):
 
         retry_choice = input("请输入选项 (1-2): ").strip()
 
-        if retry_choice == '1':
-            print("\n正在重试...")
-            failed_assets = update_all_data(force_full=force_full, assets_to_update=failed_assets)
-        else:
+        if retry_choice == '2':
             print("跳过失败资产。")
             break
+        else:
+            print("\n正在重试...")
+            failed_assets = update_all_data(force_full=force_full, assets_to_update=failed_assets)
 
     if not failed_assets:
         print("\n数据更新完成。")

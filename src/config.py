@@ -81,6 +81,7 @@ SECTOR_ASSET_CODES  = {
 
     # 行业
     # 'tourism': '159766',  # 旅游ETF
+    'chemical': '159870', # 化工ETF
 }
 
 # 行业轮动策略参数（初始值与止损轮动相同）
