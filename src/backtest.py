@@ -236,8 +236,6 @@ class BacktestEngine:
         ann_ret = (1 + total_ret) ** (252/days) - 1
         
         rf = 0.01
-        vol = df['returns'].std() * np.sqrt(252)
-        sharpe = (ann_ret - rf) / vol if vol != 0 else 0
 
         # Sortino Ratio (只考虑下行波动率)
         negative_returns = df['returns'][df['returns'] < 0]
@@ -250,13 +248,14 @@ class BacktestEngine:
         drawdown = (wealth - peak) / peak
         max_dd = drawdown.min()
 
+        # Calmar Ratio (年化收益 / |最大回撤|)
+        calmar = ann_ret / abs(max_dd) if max_dd != 0 else 0
+
         return {
-            "Total Return": total_ret,
             "Annualized Return": ann_ret,
-            "Sharpe Ratio": sharpe,
-            "Sortino Ratio": sortino,
             "Max Drawdown": max_dd,
-            "Volatility": vol
+            "Sortino Ratio": sortino,
+            "Calmar Ratio": calmar,
         }
 
 if __name__ == "__main__":
@@ -271,7 +270,7 @@ if __name__ == "__main__":
 
     print("\nBacktest Results:")
     for k, v in metrics.items():
-        print(f"{k}: {v:.2%}" if k != "Sharpe Ratio" else f"{k}: {v:.2f}")
+        print(f"{k}: {v:.2%}" if not k.endswith("Ratio") else f"{k}: {v:.2f}")
 
     print("\nAsset PnL Contribution:")
     asset_pnl = engine.get_asset_pnl()

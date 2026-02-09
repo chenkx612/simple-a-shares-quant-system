@@ -82,7 +82,7 @@ def stop_loss_rotation_menu():
             metrics = engine.get_metrics()
             print("\n回测结果:")
             for k, v in metrics.items():
-                val = f"{v:.2%}" if k != "Sharpe Ratio" else f"{v:.2f}"
+                val = f"{v:.2%}" if not k.endswith("Ratio") else f"{v:.2f}"
                 print(f"{k}: {val}")
             print_asset_pnl(engine)
 
@@ -135,7 +135,7 @@ def sector_rotation_menu():
             metrics = engine.get_metrics()
             print("\n回测结果:")
             for k, v in metrics.items():
-                val = f"{v:.2%}" if k != "Sharpe Ratio" else f"{v:.2f}"
+                val = f"{v:.2%}" if not k.endswith("Ratio") else f"{v:.2f}"
                 print(f"{k}: {val}")
             print_asset_pnl(engine)
 
