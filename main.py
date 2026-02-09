@@ -27,24 +27,11 @@ def handle_update_data(asset_codes=None, asset_pool_name="默认"):
     :param asset_codes: 要更新的资产字典 {name: code}。为 None 时使用默认资产池。
     :param asset_pool_name: 资产池名称，用于显示
     """
-    print(f"\n[{asset_pool_name}资产池] 请选择更新模式:")
-    print("1. 增量更新 (Incremental Update) - 仅更新最新数据，速度快")
-    print("2. 全量更新 (Full Update) - 重新拉取所有历史数据，修正复权误差")
-
-    choice = input("请输入选项 (1-2): ").strip()
-
-    if choice == '1':
-        print("\n正在进行增量更新...")
-        force_full = False
-    elif choice == '2':
-        print("\n正在进行全量更新...")
-        force_full = True
-    else:
-        print("无效选项，取消更新。")
-        return
+    print(f"\n[{asset_pool_name}资产池] 正在更新数据...")
+    print("(已是最新的资产将自动跳过)")
 
     assets_to_update = list(asset_codes.items()) if asset_codes else None
-    failed_assets = update_all_data(force_full=force_full, assets_to_update=assets_to_update)
+    failed_assets = update_all_data(assets_to_update=assets_to_update)
 
     # 处理失败重试
     while failed_assets:
@@ -63,7 +50,7 @@ def handle_update_data(asset_codes=None, asset_pool_name="默认"):
             break
         else:
             print("\n正在重试...")
-            failed_assets = update_all_data(force_full=force_full, assets_to_update=failed_assets)
+            failed_assets = update_all_data(assets_to_update=failed_assets)
 
     if not failed_assets:
         print("\n数据更新完成。")

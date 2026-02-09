@@ -2,7 +2,7 @@ import akshare as ak
 import pandas as pd
 import os
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from .config import ASSET_CODES, SECTOR_ASSET_CODES, DATA_DIR
 
 _TRADE_DATES_CACHE = None
@@ -84,12 +84,10 @@ def fetch_data(code, start_date="20160101", end_date=None):
         print(f"Error fetching {code}: {e}")
         return None
 
-def update_all_data(force_full=False, assets_to_update=None):
+def update_all_data(assets_to_update=None):
     """
     更新所有配置资产的数据并保存到本地
-    :param force_full: 是否强制全量更新。
-                       True: 忽略本地文件，从 20160101 重新拉取所有数据。
-                       False: 尝试增量更新。如果本地文件不存在，则全量拉取。
+    逻辑：如果本地数据已是最新则跳过，否则全量拉取覆盖
     :param assets_to_update: 指定要更新的资产列表 (name, code) 元组。为 None 时更新所有资产。
     :return: 更新失败的资产列表 [(name, code), ...]
     """
@@ -98,6 +96,7 @@ def update_all_data(force_full=False, assets_to_update=None):
 
     today = datetime.now().date()
     failed_assets = []
+    default_start_date = "20160101"
 
     # 确定要更新的资产
     if assets_to_update is None:
@@ -106,87 +105,28 @@ def update_all_data(force_full=False, assets_to_update=None):
     for name, code in assets_to_update:
         file_path = os.path.join(DATA_DIR, f"{code}.csv")
 
-        # 默认起始日期
-        default_start_date = "20160101"
+        # 检查是否需要更新
+        if os.path.exists(file_path):
+            try:
+                existing_df = pd.read_csv(file_path, index_col='date', parse_dates=True)
+                if not existing_df.empty:
+                    last_date = existing_df.index.max()
+                    if last_date.date() >= today:
+                        print(f"Skipping {name} ({code}): Already up to date ({last_date.date()})")
+                        continue
+            except Exception as e:
+                print(f"Error reading {file_path}: {e}")
 
-        if force_full:
-            print(f"Full update for {name} ({code})...")
-            df = fetch_data(code, start_date=default_start_date)
-            if df is not None and not df.empty:
-                df.to_csv(file_path)
-                print(f"Saved {name} ({code}) to {file_path}")
-            else:
-                print(f"Failed to fetch data for {name} ({code})")
-                failed_assets.append((name, code))
+        # 全量拉取
+        print(f"Fetching {name} ({code})...")
+        df = fetch_data(code, start_date=default_start_date)
+        if df is not None and not df.empty:
+            df.to_csv(file_path)
+            print(f"Saved {name} ({code})")
         else:
-            # 增量更新模式
-            if os.path.exists(file_path):
-                try:
-                    existing_df = pd.read_csv(file_path, index_col='date', parse_dates=True)
-                    if not existing_df.empty:
-                        last_date = existing_df.index.max()
+            print(f"Failed to fetch {name} ({code})")
+            failed_assets.append((name, code))
 
-                        # 只有当本地数据已经是今天时才跳过
-                        # 不再依赖交易日历API，避免因API延迟导致漏更新
-                        if last_date.date() >= today:
-                            print(f"Skipping {name} ({code}): Already up to date ({last_date.date()})")
-                            continue
-
-                        start_date_obj = last_date + timedelta(days=1)
-                        start_date_str = start_date_obj.strftime("%Y%m%d")
-                        print(f"Incremental update for {name} ({code}) from {start_date_str}...")
-                        
-                        new_df = fetch_data(code, start_date=start_date_str)
-                        
-                        if new_df is not None and not new_df.empty:
-                            # 过滤掉已经存在的日期
-                            new_df = new_df[new_df.index > last_date]
-
-                            if not new_df.empty:
-                                df = pd.concat([existing_df, new_df])
-                                df = df[~df.index.duplicated(keep='last')]
-                                df = df.sort_index()
-                                df.to_csv(file_path)
-                                print(f"Updated {name} ({code}). Added {len(new_df)} records.")
-                            else:
-                                print(f"No new records for {name} ({code}).")
-                        elif new_df is None:
-                            # 接口报错
-                            print(f"Failed to fetch data for {name} ({code}).")
-                            failed_assets.append((name, code))
-                        else:
-                            # 返回空数据，正常情况
-                            print(f"No new data for {name} ({code}).")
-                    else:
-                        # 文件为空，全量
-                        print(f"File empty for {name} ({code}). Full update...")
-                        df = fetch_data(code, start_date=default_start_date)
-                        if df is not None and not df.empty:
-                            df.to_csv(file_path)
-                            print(f"Saved {name} ({code}) to {file_path}")
-                        else:
-                            print(f"Failed to fetch data for {name} ({code})")
-                            failed_assets.append((name, code))
-                except Exception as e:
-                    print(f"Error reading {file_path}: {e}. Fallback to full update.")
-                    df = fetch_data(code, start_date=default_start_date)
-                    if df is not None and not df.empty:
-                        df.to_csv(file_path)
-                        print(f"Saved {name} ({code}) to {file_path}")
-                    else:
-                        print(f"Failed to fetch data for {name} ({code})")
-                        failed_assets.append((name, code))
-            else:
-                # 文件不存在，全量
-                print(f"File not found for {name} ({code}). Full update...")
-                df = fetch_data(code, start_date=default_start_date)
-                if df is not None and not df.empty:
-                    df.to_csv(file_path)
-                    print(f"Saved {name} ({code}) to {file_path}")
-                else:
-                    print(f"Failed to fetch data for {name} ({code})")
-                    failed_assets.append((name, code))
-        
         # 避免请求过快
         time.sleep(0.5)
 
