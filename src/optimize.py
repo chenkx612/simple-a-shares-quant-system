@@ -96,24 +96,47 @@ class GridSearchOptimizer:
         param_names = list(self.param_grid.keys())
         header = " | ".join(f"{p:<6}" for p in param_names)
         valid_col = " | Valid" if self.constraints else ""
-        print(f"\n{header} | {'Ann.Ret':<10} | {'Sortino':<8} | {'MaxDD':<10} | {'Score':<8}{valid_col}")
-        print("-" * (70 + (8 if self.constraints else 0)))
+        metric_name = {'sortino': 'Sortino', 'calmar': 'Calmar', 'sharpe': 'Sharpe', 'return': 'Return'}.get(self.metric, self.metric)
+        print(f"\n{header} | {metric_name:<8}{valid_col}")
+        print("-" * (len(header) + 12 + (8 if self.constraints else 0)))
 
     def _print_row(self, params, metrics, score, satisfies_constraints=True):
         if not metrics:
             return
         param_vals = " | ".join(f"{params[p]:<6}" for p in self.param_grid.keys())
         valid_col = f" | {'✓' if satisfies_constraints else '✗':^5}" if self.constraints else ""
-        print(f"{param_vals} | {metrics['Annualized Return']:<10.2%} | "
-              f"{metrics['Sortino Ratio']:<8.2f} | {metrics['Max Drawdown']:<10.2%} | {score:<8.2f}{valid_col}")
+        print(f"{param_vals} | {score:<8.2f}{valid_col}")
 
     def _print_footer(self, best_params, best_score):
-        print("-" * (70 + (8 if self.constraints else 0)))
+        param_names = list(self.param_grid.keys())
+        header = " | ".join(f"{p:<6}" for p in param_names)
+        print("-" * (len(header) + 12 + (8 if self.constraints else 0)))
         constraint_label = " (constrained)" if self.constraints else ""
         if best_params:
-            print(f"Best{constraint_label}: {best_params} (Score: {best_score:.2f})")
+            print(f"\nBest{constraint_label}: {best_params}")
+            self._print_best_metrics(best_params)
         else:
             print(f"No valid parameters found{constraint_label}.")
+
+    def _print_best_metrics(self, best_params):
+        """展示最优参数组合的详细回测指标"""
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            engine = BacktestEngine(data_map=self.data_map)
+            strategy = self.strategy_class(**best_params, **self.fixed_params)
+            engine.run(strategy)
+
+        metrics = engine.get_metrics()
+        if not metrics:
+            return
+
+        print("\nBacktest Results:")
+        for k, v in metrics.items():
+            if k.endswith("Ratio"):
+                print(f"  {k}: {v:.2f}")
+            else:
+                print(f"  {k}: {v:.2%}")
 
 
 def optimize_stop_loss_params():
