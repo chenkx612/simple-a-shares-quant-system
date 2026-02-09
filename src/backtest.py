@@ -238,17 +238,23 @@ class BacktestEngine:
         rf = 0.01
         vol = df['returns'].std() * np.sqrt(252)
         sharpe = (ann_ret - rf) / vol if vol != 0 else 0
-        
+
+        # Sortino Ratio (只考虑下行波动率)
+        negative_returns = df['returns'][df['returns'] < 0]
+        downside_vol = negative_returns.std() * np.sqrt(252) if len(negative_returns) > 0 else 0
+        sortino = (ann_ret - rf) / downside_vol if downside_vol != 0 else 0
+
         # Max Drawdown
         wealth = df['total_value']
         peak = wealth.cummax()
         drawdown = (wealth - peak) / peak
         max_dd = drawdown.min()
-        
+
         return {
             "Total Return": total_ret,
             "Annualized Return": ann_ret,
             "Sharpe Ratio": sharpe,
+            "Sortino Ratio": sortino,
             "Max Drawdown": max_dd,
             "Volatility": vol
         }

@@ -14,7 +14,7 @@ class GridSearchOptimizer:
     """通用网格搜索优化器"""
 
     def __init__(self, strategy_class, param_grid, fixed_params=None,
-                 metric='sharpe', data_map=None, constraints=None):
+                 metric='sortino', data_map=None, constraints=None):
         self.strategy_class = strategy_class
         self.param_grid = param_grid
         self.fixed_params = fixed_params or {}
@@ -39,7 +39,9 @@ class GridSearchOptimizer:
         """根据指定指标计算分数"""
         if not metrics:
             return -999
-        if self.metric == 'calmar':
+        if self.metric == 'sortino':
+            return metrics.get('Sortino Ratio', -999)
+        elif self.metric == 'calmar':
             max_dd = abs(metrics.get('Max Drawdown', 0))
             return metrics['Annualized Return'] / max_dd if max_dd > 0.0001 else -999
         elif self.metric == 'sharpe':
@@ -94,7 +96,7 @@ class GridSearchOptimizer:
         param_names = list(self.param_grid.keys())
         header = " | ".join(f"{p:<6}" for p in param_names)
         valid_col = " | Valid" if self.constraints else ""
-        print(f"\n{header} | {'Ann.Ret':<10} | {'Sharpe':<8} | {'MaxDD':<10} | {'Score':<8}{valid_col}")
+        print(f"\n{header} | {'Ann.Ret':<10} | {'Sortino':<8} | {'MaxDD':<10} | {'Score':<8}{valid_col}")
         print("-" * (70 + (8 if self.constraints else 0)))
 
     def _print_row(self, params, metrics, score, satisfies_constraints=True):
@@ -103,7 +105,7 @@ class GridSearchOptimizer:
         param_vals = " | ".join(f"{params[p]:<6}" for p in self.param_grid.keys())
         valid_col = f" | {'✓' if satisfies_constraints else '✗':^5}" if self.constraints else ""
         print(f"{param_vals} | {metrics['Annualized Return']:<10.2%} | "
-              f"{metrics['Sharpe Ratio']:<8.2f} | {metrics['Max Drawdown']:<10.2%} | {score:<8.2f}{valid_col}")
+              f"{metrics['Sortino Ratio']:<8.2f} | {metrics['Max Drawdown']:<10.2%} | {score:<8.2f}{valid_col}")
 
     def _print_footer(self, best_params, best_score):
         print("-" * (70 + (8 if self.constraints else 0)))
@@ -136,9 +138,9 @@ def optimize_sector_params():
     """Grid search optimization for sector rotation strategy parameters.
 
     约束：|最大回撤| < 年化收益率
-    目标：最大化夏普率
+    目标：最大化 Sortino 比率
     """
-    print(f"\nRunning Sector Rotation Optimization (Sharpe, |MaxDD| < AnnRet)...")
+    print(f"\nRunning Sector Rotation Optimization (Sortino, |MaxDD| < AnnRet)...")
     print(f"Fixed Parameters: K={SECTOR_K}, Corr Threshold={SECTOR_CORR_THRESHOLD}")
     print(f"Asset Pool: {list(SECTOR_ASSET_CODES.keys())}")
 
@@ -155,7 +157,6 @@ def optimize_sector_params():
         },
         fixed_params={'k': SECTOR_K, 'corr_threshold': SECTOR_CORR_THRESHOLD},
         data_map=data_map,
-        metric='sharpe',
         constraints=[dd_less_than_return]
     )
     return optimizer.run()
@@ -165,9 +166,9 @@ def optimize_factor_floor_params():
     """Grid search optimization for factor floor rotation strategy parameters.
 
     约束：|最大回撤| < 年化收益率
-    目标：最大化夏普率
+    目标：最大化 Sortino 比率
     """
-    print(f"\nRunning Factor Floor Rotation Optimization (Sharpe, |MaxDD| < AnnRet)...")
+    print(f"\nRunning Factor Floor Rotation Optimization (Sortino, |MaxDD| < AnnRet)...")
     print(f"Fixed Parameters: K={FACTOR_FLOOR_K}, Corr Threshold={FACTOR_FLOOR_CORR_THRESHOLD}")
     print(f"Asset Pool: {list(SECTOR_ASSET_CODES.keys())}")
 
@@ -185,7 +186,6 @@ def optimize_factor_floor_params():
         },
         fixed_params={'k': FACTOR_FLOOR_K, 'corr_threshold': FACTOR_FLOOR_CORR_THRESHOLD},
         data_map=data_map,
-        metric='sharpe',
         constraints=[dd_less_than_return]
     )
     return optimizer.run()
