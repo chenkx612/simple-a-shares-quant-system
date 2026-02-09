@@ -82,6 +82,9 @@ SECTOR_ASSET_CODES  = {
     # 行业
     # 'tourism': '159766',  # 旅游ETF
     'chemical': '159870', # 化工ETF
+    'communication': '515880', # 通信ETF
+    # 'media': '512980', # 传媒ETF
+    'ai': '159819', # 人工智能ETF
 }
 
 # 行业轮动策略参数（初始值与止损轮动相同）
@@ -89,7 +92,7 @@ SECTOR_M = 5  # 持有资产数量
 SECTOR_N = 25  # 因子计算窗口 (收益/波动)
 SECTOR_K = 100  # 相关性计算窗口
 SECTOR_CORR_THRESHOLD = 0.9  # 相关性阈值
-SECTOR_STOP_LOSS_PCT = 0.1  # 止损阈值
+SECTOR_STOP_LOSS_PCT = 0.08  # 止损阈值
 
 # 因子下限轮动策略参数
 FACTOR_FLOOR_M = 5  # 持有资产数量
