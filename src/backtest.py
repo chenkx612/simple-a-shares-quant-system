@@ -235,12 +235,10 @@ class BacktestEngine:
         days = len(df)
         ann_ret = (1 + total_ret) ** (252/days) - 1
         
-        rf = 0.01
-
         # Sortino Ratio (只考虑下行波动率)
         negative_returns = df['returns'][df['returns'] < 0]
         downside_vol = negative_returns.std() * np.sqrt(252) if len(negative_returns) > 0 else 0
-        sortino = (ann_ret - rf) / downside_vol if downside_vol != 0 else 0
+        sortino = ann_ret / downside_vol if downside_vol != 0 else 0
 
         # Max Drawdown
         wealth = df['total_value']
