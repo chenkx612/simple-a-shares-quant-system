@@ -42,8 +42,8 @@ def get_latest_valid_trading_date():
         
         latest_date = valid_dates[-1]
         
-        # 如果最近交易日是今天，且现在还没收盘（< 16:00），则认为今天的数据还没准备好
-        if latest_date == today and now.hour < 16:
+        # 如果最近交易日是今天，且现在还没收盘（< 15:00），则认为今天的数据还没准备好
+        if latest_date == today and now.hour < 15:
             if len(valid_dates) > 1:
                 return valid_dates[-2]
             else:
