@@ -94,7 +94,12 @@ def update_all_data(assets_to_update=None):
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
 
-    today = datetime.now().date()
+    # 获取最近有效交易日（考虑非交易日和盘中情况）
+    latest_trading_date = get_latest_valid_trading_date()
+    if latest_trading_date is None:
+        print("Warning: Could not determine latest trading date, using today's date")
+        latest_trading_date = datetime.now().date()
+
     failed_assets = []
     default_start_date = "20160101"
 
@@ -105,13 +110,13 @@ def update_all_data(assets_to_update=None):
     for name, code in assets_to_update:
         file_path = os.path.join(DATA_DIR, f"{code}.csv")
 
-        # 检查是否需要更新
+        # 检查是否需要更新：本地数据最后日期 >= 最近有效交易日则跳过
         if os.path.exists(file_path):
             try:
                 existing_df = pd.read_csv(file_path, index_col='date', parse_dates=True)
                 if not existing_df.empty:
                     last_date = existing_df.index.max()
-                    if last_date.date() >= today:
+                    if last_date.date() >= latest_trading_date:
                         print(f"Skipping {name} ({code}): Already up to date ({last_date.date()})")
                         continue
             except Exception as e:
