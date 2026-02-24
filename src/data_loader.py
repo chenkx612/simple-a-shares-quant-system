@@ -54,19 +54,96 @@ def get_latest_valid_trading_date():
         print(f"Warning: Failed to fetch trade dates: {e}")
         return None
 
+def get_sina_symbol(code):
+    """
+    将纯数字代码转换为 sina 格式 (sh/sz 前缀)
+    上海: 5/6 开头 → sh
+    深圳: 1/0 开头 → sz
+    """
+    if code.startswith(('5', '6')):
+        return f"sh{code}"
+    else:
+        return f"sz{code}"
+
+
+def fetch_all_fund_spot_sina():
+    """
+    使用 sina 接口获取全市场 ETF/LOF 当日行情
+    返回: DataFrame, 以代码为索引（纯数字）, 包含 open/high/low/close/volume
+    """
+    try:
+        etf_df = ak.fund_etf_category_sina("ETF基金")
+        lof_df = ak.fund_etf_category_sina("LOF基金")
+        combined = pd.concat([etf_df, lof_df], ignore_index=True)
+
+        # 映射列名
+        combined = combined.rename(columns={
+            "今开": "open",
+            "最高": "high",
+            "最低": "low",
+            "最新价": "close",
+            "成交量": "volume",
+            "代码": "code"
+        })
+        # 去除代码前缀 (sh/sz)，转为纯数字格式
+        combined["code"] = combined["code"].str.replace(r"^(sh|sz)", "", regex=True)
+        combined = combined.set_index("code")
+        return combined[["open", "high", "low", "close", "volume"]]
+    except Exception as e:
+        print(f"Error fetching spot data from sina: {e}")
+        return None
+
+
+def append_spot_to_csv(code, spot_df, trading_date):
+    """
+    将 spot_df 中指定 code 的当日数据追加到 CSV
+    返回: True 成功, False 失败
+    """
+    if code not in spot_df.index:
+        return False
+
+    file_path = os.path.join(DATA_DIR, f"{code}.csv")
+    if not os.path.exists(file_path):
+        return False  # 没有历史数据，无法增量更新
+
+    existing_df = pd.read_csv(file_path, index_col='date', parse_dates=True)
+
+    # 检查是否已有该日期数据
+    if pd.Timestamp(trading_date) in existing_df.index:
+        return True  # 已存在，视为成功
+
+    # 构造新行
+    row = spot_df.loc[code]
+    new_row = pd.DataFrame({
+        "open": [row["open"]],
+        "high": [row["high"]],
+        "low": [row["low"]],
+        "close": [row["close"]],
+        "volume": [row["volume"]]
+    }, index=pd.DatetimeIndex([trading_date], name="date"))
+
+    # 追加并保存
+    updated_df = pd.concat([existing_df, new_row]).sort_index()
+    updated_df.to_csv(file_path)
+    return True
+
+
 def fetch_data(code, start_date="20160101", end_date=None):
     """
     获取单个ETF/LOF的日线数据 (前复权)
+    三级备用机制:
+    1. fund_etf_hist_em (东方财富) - 主接口
+    2. fund_etf_hist_sina (新浪历史) - 第二备用
+    3. fund_etf_category_sina (新浪当日) - 最后备用 (在 update_all_data 中处理)
     """
     if end_date is None:
         end_date = datetime.now().strftime("%Y%m%d")
-        
+
     print(f"Fetching {code} from {start_date} to {end_date}...")
+
+    # 方案1: fund_etf_hist_em (主接口)
     try:
-        # 尝试使用 ak.fund_etf_hist_em
         df = ak.fund_etf_hist_em(symbol=code, period="daily", start_date=start_date, end_date=end_date, adjust="qfq")
-        
-        # 重命名列以统一格式
         rename_map = {
             "日期": "date",
             "开盘": "open",
@@ -77,12 +154,26 @@ def fetch_data(code, start_date="20160101", end_date=None):
         }
         df = df.rename(columns=rename_map)
         df['date'] = pd.to_datetime(df['date'])
-        df = df.set_index('date')
-        df = df.sort_index()
-        return df
+        df = df.set_index('date').sort_index()
+        return df[["open", "high", "low", "close", "volume"]]
     except Exception as e:
-        print(f"Error fetching {code}: {e}")
-        return None
+        print(f"fund_etf_hist_em failed for {code}: {e}")
+
+    # 方案2: fund_etf_hist_sina (备用接口)
+    try:
+        sina_symbol = get_sina_symbol(code)
+        df = ak.fund_etf_hist_sina(symbol=sina_symbol)
+        df['date'] = pd.to_datetime(df['date'])
+        df = df.set_index('date').sort_index()
+        # 过滤日期范围
+        start_dt = pd.to_datetime(start_date)
+        end_dt = pd.to_datetime(end_date)
+        df = df[(df.index >= start_dt) & (df.index <= end_dt)]
+        return df[["open", "high", "low", "close", "volume"]]
+    except Exception as e:
+        print(f"fund_etf_hist_sina failed for {code}: {e}")
+
+    return None
 
 def update_all_data(assets_to_update=None):
     """
@@ -134,6 +225,23 @@ def update_all_data(assets_to_update=None):
 
         # 避免请求过快
         time.sleep(0.5)
+
+    # 第一轮结束后，如果有失败的资产，尝试备用方案
+    if failed_assets:
+        print(f"\n尝试使用 sina 备用接口更新 {len(failed_assets)} 个失败资产...")
+        spot_df = fetch_all_fund_spot_sina()
+
+        if spot_df is not None:
+            still_failed = []
+
+            for name, code in failed_assets:
+                if append_spot_to_csv(code, spot_df, latest_trading_date):
+                    print(f"Fallback success: {name} ({code})")
+                else:
+                    print(f"Fallback failed: {name} ({code})")
+                    still_failed.append((name, code))
+
+            failed_assets = still_failed
 
     return failed_assets
 
