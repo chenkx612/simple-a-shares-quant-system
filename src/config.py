@@ -69,10 +69,10 @@ SECTOR_ASSET_CODES  = {
     "germany": "513030",   # 德国ETF (欧洲价值)
 
     # 防御
-    "bond_10y": "511260",  # 10年国债ETF (替代30年国债，降低利率风险)
-    "bank": "512800",       # 银行ETF (低波动防御)
+    'free_cash': '159201', # 自由现金流ETF
     
     # 行业
+    "bank": "512800",       # 银行ETF (低波动防御)
     "bean": "159985",      # 豆粕 (农产品，零相关)
     "grid": "159326",       # 电网设备 (具有公用事业属性，与大盘走势往往不同步)
     "liquor": "512690",     # 酒 ETF
@@ -82,12 +82,13 @@ SECTOR_ASSET_CODES  = {
     'ai': '159819', # 人工智能ETF
 
     # 备选
-    # "dividend": "510880",  # 红利ETF (震荡市神器，高股息低波)
+    # "dividend": "510880",  # 红利ETF
     # 'tourism': '159766',  # 旅游ETF
     # 'japen': '513880', # 日经225ETF
     # 'game': '159869', # 游戏ETF
     # 'chip': '588200', # 芯片ETF
     # 'media': '512980', # 传媒ETF
+    # 'metals': '516650', # 有色金属ETF
 }
 
 # 行业轮动策略参数（初始值与止损轮动相同）
@@ -95,7 +96,7 @@ SECTOR_M = 4  # 持有资产数量
 SECTOR_N = 25  # 因子计算窗口 (收益/波动)
 SECTOR_K = 100  # 相关性计算窗口
 SECTOR_CORR_THRESHOLD = 0.9  # 相关性阈值
-SECTOR_STOP_LOSS_PCT = 0.08  # 止损阈值
+SECTOR_STOP_LOSS_PCT = 0.06  # 止损阈值
 
 # 因子下限轮动策略参数
 FACTOR_FLOOR_M = 5  # 持有资产数量
