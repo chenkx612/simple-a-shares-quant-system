@@ -54,18 +54,6 @@ def get_latest_valid_trading_date():
         print(f"Warning: Failed to fetch trade dates: {e}")
         return None
 
-def get_sina_symbol(code):
-    """
-    将纯数字代码转换为 sina 格式 (sh/sz 前缀)
-    上海: 5/6 开头 → sh
-    深圳: 1/0 开头 → sz
-    """
-    if code.startswith(('5', '6')):
-        return f"sh{code}"
-    else:
-        return f"sz{code}"
-
-
 def fetch_all_fund_spot_sina():
     """
     使用 sina 接口获取全市场 ETF/LOF 当日行情
@@ -131,19 +119,18 @@ def append_spot_to_csv(code, spot_df, trading_date):
 def fetch_data(code, start_date="20160101", end_date=None):
     """
     获取单个ETF/LOF的日线数据 (前复权)
-    三级备用机制:
+    两级备用机制:
     1. fund_etf_hist_em (东方财富) - 主接口
-    2. fund_etf_hist_sina (新浪历史) - 第二备用
-    3. fund_etf_category_sina (新浪当日) - 最后备用 (在 update_all_data 中处理)
+    2. fund_etf_category_sina (新浪当日) - 备用 (在 update_all_data 中处理增量更新)
     """
     if end_date is None:
         end_date = datetime.now().strftime("%Y%m%d")
 
     print(f"Fetching {code} from {start_date} to {end_date}...")
 
-    # 方案1: fund_etf_hist_em (主接口)
     try:
-        df = ak.fund_etf_hist_em(symbol=code, period="daily", start_date=start_date, end_date=end_date, adjust="qfq")
+        df = ak.fund_lof_hist_em(symbol=code, period="daily", start_date=start_date, end_date=end_date, adjust="qfq")
+        # df = ak.fund_etf_hist_em(symbol=code, period="daily", start_date=start_date, end_date=end_date, adjust="qfq")
         rename_map = {
             "日期": "date",
             "开盘": "open",
@@ -158,20 +145,6 @@ def fetch_data(code, start_date="20160101", end_date=None):
         return df[["open", "high", "low", "close", "volume"]]
     except Exception as e:
         print(f"fund_etf_hist_em failed for {code}: {e}")
-
-    # 方案2: fund_etf_hist_sina (备用接口)
-    try:
-        sina_symbol = get_sina_symbol(code)
-        df = ak.fund_etf_hist_sina(symbol=sina_symbol)
-        df['date'] = pd.to_datetime(df['date'])
-        df = df.set_index('date').sort_index()
-        # 过滤日期范围
-        start_dt = pd.to_datetime(start_date)
-        end_dt = pd.to_datetime(end_date)
-        df = df[(df.index >= start_dt) & (df.index <= end_dt)]
-        return df[["open", "high", "low", "close", "volume"]]
-    except Exception as e:
-        print(f"fund_etf_hist_sina failed for {code}: {e}")
 
     return None
 
