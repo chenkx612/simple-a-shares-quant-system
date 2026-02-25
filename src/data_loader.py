@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import time
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from .config import ASSET_CODES, SECTOR_ASSET_CODES, DATA_DIR
 
 _TRADE_DATES_CACHE = None
@@ -116,12 +117,20 @@ def append_spot_to_csv(code, spot_df, trading_date):
     return True
 
 
+def _code_to_tx_symbol(code):
+    """将纯数字代码转为腾讯接口所需的带市场前缀格式 (如 'sh510050')"""
+    if code.startswith(('5', '6', '9')):
+        return f"sh{code}"
+    return f"sz{code}"
+
+
 def fetch_data(code, start_date="20160101", end_date=None):
     """
     获取单个ETF/LOF的日线数据 (前复权)
-    两级备用机制:
-    1. fund_etf_hist_em (东方财富) - 主接口
-    2. fund_etf_category_sina (新浪当日) - 备用 (在 update_all_data 中处理增量更新)
+    三级备用机制:
+    1. stock_zh_a_hist (东方财富) - 主接口
+    2. stock_zh_a_hist_tx (腾讯) - 备用历史接口
+    3. fund_etf_category_sina (新浪当日) - 备用 (在 update_all_data 中处理增量更新)
     """
     if end_date is None:
         end_date = datetime.now().strftime("%Y%m%d")
@@ -129,8 +138,7 @@ def fetch_data(code, start_date="20160101", end_date=None):
     print(f"Fetching {code} from {start_date} to {end_date}...")
 
     try:
-        df = ak.fund_lof_hist_em(symbol=code, period="daily", start_date=start_date, end_date=end_date, adjust="qfq")
-        # df = ak.fund_etf_hist_em(symbol=code, period="daily", start_date=start_date, end_date=end_date, adjust="qfq")
+        df = ak.fund_etf_hist_em(symbol=code, period="daily", start_date=start_date, end_date=end_date, adjust="qfq")
         rename_map = {
             "日期": "date",
             "开盘": "open",
@@ -145,6 +153,18 @@ def fetch_data(code, start_date="20160101", end_date=None):
         return df[["open", "high", "low", "close", "volume"]]
     except Exception as e:
         print(f"fund_etf_hist_em failed for {code}: {e}")
+
+    try:
+        symbol_tx = _code_to_tx_symbol(code)
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(ak.stock_zh_a_hist_tx, symbol=symbol_tx, start_date=start_date, end_date=end_date, adjust="qfq")
+            df = future.result(timeout=15)
+        df = df.rename(columns={"amount": "volume"})
+        df['date'] = pd.to_datetime(df['date'])
+        df = df.set_index('date').sort_index()
+        return df[["open", "high", "low", "close", "volume"]]
+    except Exception as e:
+        print(f"stock_zh_a_hist_tx failed for {code}: {e}")
 
     return None
 
