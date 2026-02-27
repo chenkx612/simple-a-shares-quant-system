@@ -80,6 +80,8 @@ SECTOR_ASSET_CODES  = {
     'chemical': '159870', # 化工ETF
     'communication': '515880', # 通信ETF
     'ai': '159819', # 人工智能ETF
+    'satellite': '159206', # 卫星ETF
+    'software': '159852', # 软件ETF
 
     # 备选
     # "dividend": "510880",  # 红利ETF
@@ -88,7 +90,11 @@ SECTOR_ASSET_CODES  = {
     # 'game': '159869', # 游戏ETF
     # 'chip': '588200', # 芯片ETF
     # 'media': '512980', # 传媒ETF
-    # 'metals': '516650', # 有色金属ETF
+    # 'rare_earth': '516150', # 稀土ETF
+    # 'metals': '560860', # 有色ETF
+    # 'semiconductor': '512480', # 半导体ETF
+    # 'nasdaq_tech': '159509', # 纳指科技ETF
+    # 'military': '512660', # 军工ETF
 }
 
 # 行业轮动策略参数（初始值与止损轮动相同）
