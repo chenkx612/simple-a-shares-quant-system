@@ -85,16 +85,21 @@ SECTOR_ASSET_CODES  = {
 
     # 备选
     # "dividend": "510880",  # 红利ETF
+    # 'dividend1': '512890', # 红利ETF1
+    # 'dividend2': '515180', # 红利ETF2
+    # 'sp500': '513500', # 标普500
     # 'tourism': '159766',  # 旅游ETF
     # 'japen': '513880', # 日经225ETF
     # 'game': '159869', # 游戏ETF
     # 'chip': '588200', # 芯片ETF
     # 'media': '512980', # 传媒ETF
     # 'rare_earth': '516150', # 稀土ETF
-    # 'metals': '560860', # 有色ETF
+    # 'metals': '512400', # 有色ETF
     # 'semiconductor': '512480', # 半导体ETF
     # 'nasdaq_tech': '159509', # 纳指科技ETF
-    # 'military': '512660', # 军工ETF
+    # 'military': '512710', # 军工ETF
+    # 'industrial_machine': '159667', # 工业母机ETF
+    # 'ship': '560710', # 船舶ETF
 }
 
 # 行业轮动策略参数（初始值与止损轮动相同）

@@ -210,8 +210,13 @@ def update_all_data(assets_to_update=None):
         print(f"Fetching {name} ({code})...")
         df = fetch_data(code, start_date=default_start_date)
         if df is not None and not df.empty:
-            df.to_csv(file_path)
-            print(f"Saved {name} ({code})")
+            last_date = df.index.max().date()
+            if last_date >= latest_trading_date:
+                df.to_csv(file_path)
+                print(f"Saved {name} ({code})")
+            else:
+                print(f"Stale data for {name} ({code}): latest={last_date}, expected>={latest_trading_date}")
+                failed_assets.append((name, code))
         else:
             print(f"Failed to fetch {name} ({code})")
             failed_assets.append((name, code))
