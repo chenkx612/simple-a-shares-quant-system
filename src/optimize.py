@@ -1,12 +1,7 @@
-import numpy as np
 from itertools import product
 from .backtest import BacktestEngine
-from .strategy import StopLossRotationStrategy, SectorRotationStrategy, FactorFloorRotationStrategy
-from .config import (
-    STOP_LOSS_K, STOP_LOSS_CORR_THRESHOLD,
-    SECTOR_ASSET_CODES, SECTOR_K, SECTOR_CORR_THRESHOLD,
-    FACTOR_FLOOR_K, FACTOR_FLOOR_CORR_THRESHOLD
-)
+from .strategy import SectorRotationStrategy
+from .config import SECTOR_ASSET_CODES, SECTOR_K, SECTOR_CORR_THRESHOLD
 from .data_loader import load_all_data
 
 
@@ -139,24 +134,6 @@ class GridSearchOptimizer:
                 print(f"  {k}: {v:.2%}")
 
 
-def optimize_stop_loss_params():
-    """Grid search optimization for stop-loss rotation strategy parameters."""
-    print(f"\nRunning Stop-Loss Rotation Optimization...")
-    print(f"Fixed Parameters: K={STOP_LOSS_K}, Corr Threshold={STOP_LOSS_CORR_THRESHOLD}")
-
-    optimizer = GridSearchOptimizer(
-        strategy_class=StopLossRotationStrategy,
-        param_grid={
-            'm': [3, 4, 5],
-            'n': [10, 15, 20, 30],
-            'stop_loss_pct': [0.05, 0.06, 0.07],
-            'corr_threshold': [0.7, 0.8, 0.9]
-        },
-        fixed_params={'k': STOP_LOSS_K}
-    )
-    return optimizer.run()
-
-
 def optimize_sector_params():
     """Grid search optimization for sector rotation strategy parameters.
 
@@ -185,34 +162,5 @@ def optimize_sector_params():
     return optimizer.run()
 
 
-def optimize_factor_floor_params():
-    """Grid search optimization for factor floor rotation strategy parameters.
-
-    约束：|最大回撤| < 年化收益率
-    目标：最大化 Sortino 比率
-    """
-    print(f"\nRunning Factor Floor Rotation Optimization (Sortino, |MaxDD| < AnnRet)...")
-    print(f"Fixed Parameters: K={FACTOR_FLOOR_K}, Corr Threshold={FACTOR_FLOOR_CORR_THRESHOLD}")
-    print(f"Asset Pool: {list(SECTOR_ASSET_CODES.keys())}")
-
-    def dd_less_than_return(m):
-        return abs(m.get('Max Drawdown', 1)) < m.get('Annualized Return', 0)
-
-    data_map = load_all_data(asset_codes=SECTOR_ASSET_CODES)
-    optimizer = GridSearchOptimizer(
-        strategy_class=FactorFloorRotationStrategy,
-        param_grid={
-            'm': [5],
-            'n': [25],
-            'stop_loss_pct': [0.1],
-            'factor_floor': np.arange(-2, 2.1, 0.1)
-        },
-        fixed_params={'k': FACTOR_FLOOR_K, 'corr_threshold': FACTOR_FLOOR_CORR_THRESHOLD},
-        data_map=data_map,
-        constraints=[dd_less_than_return]
-    )
-    return optimizer.run()
-
-
 if __name__ == "__main__":
-    optimize_stop_loss_params()
+    optimize_sector_params()

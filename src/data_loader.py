@@ -4,20 +4,17 @@ import os
 import time
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
-from .config import ASSET_CODES, SECTOR_ASSET_CODES, DATA_DIR
+from .config import SECTOR_ASSET_CODES, DATA_DIR
 
 _TRADE_DATES_CACHE = None
 
 
 def get_all_asset_codes():
     """
-    合并所有资产池的代码，避免重复
+    返回所有资产池的代码
     返回: dict {asset_key: code}
     """
-    all_codes = {}
-    all_codes.update(ASSET_CODES)
-    all_codes.update(SECTOR_ASSET_CODES)
-    return all_codes
+    return dict(SECTOR_ASSET_CODES)
 
 def get_latest_valid_trading_date():
     """
@@ -189,7 +186,7 @@ def update_all_data(assets_to_update=None):
 
     # 确定要更新的资产
     if assets_to_update is None:
-        assets_to_update = list(ASSET_CODES.items())
+        assets_to_update = list(SECTOR_ASSET_CODES.items())
 
     for name, code in assets_to_update:
         file_path = os.path.join(DATA_DIR, f"{code}.csv")
@@ -247,11 +244,11 @@ def update_all_data(assets_to_update=None):
 def load_all_data(asset_codes=None):
     """
     从本地加载数据
-    :param asset_codes: 要加载的资产字典 {name: code}。为 None 时加载默认资产池 (ASSET_CODES)。
+    :param asset_codes: 要加载的资产字典 {name: code}。为 None 时加载默认资产池 (SECTOR_ASSET_CODES)。
     返回: dict {asset_key: dataframe}
     """
     if asset_codes is None:
-        asset_codes = ASSET_CODES
+        asset_codes = SECTOR_ASSET_CODES
 
     data_map = {}
     for name, code in asset_codes.items():

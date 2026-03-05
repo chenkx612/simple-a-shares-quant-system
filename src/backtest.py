@@ -257,11 +257,19 @@ class BacktestEngine:
         }
 
 if __name__ == "__main__":
-    from .strategy import SmartRotationStrategy
-    from .config import SMART_M, SMART_N, SMART_K, CORR_THRESHOLD
+    from .strategy import SectorRotationStrategy
+    from .config import (
+        SECTOR_ASSET_CODES, SECTOR_M, SECTOR_N, SECTOR_K,
+        SECTOR_CORR_THRESHOLD, SECTOR_STOP_LOSS_PCT
+    )
+    from .data_loader import load_all_data
 
-    engine = BacktestEngine()
-    strategy = SmartRotationStrategy(m=SMART_M, n=SMART_N, k=SMART_K, corr_threshold=CORR_THRESHOLD)
+    data_map = load_all_data(asset_codes=SECTOR_ASSET_CODES)
+    engine = BacktestEngine(data_map=data_map)
+    strategy = SectorRotationStrategy(
+        m=SECTOR_M, n=SECTOR_N, k=SECTOR_K,
+        corr_threshold=SECTOR_CORR_THRESHOLD, stop_loss_pct=SECTOR_STOP_LOSS_PCT
+    )
 
     result = engine.run(strategy)
     metrics = engine.get_metrics()
