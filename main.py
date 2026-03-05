@@ -1,12 +1,35 @@
 import sys
 from src.data_loader import update_all_data, load_all_data
 from src.backtest import BacktestEngine
-from src.optimize import optimize_sector_params
+from src.optimize import optimize_sector_params, optimize_sortino_params
 from src.trading_signal import get_trading_signal
 from src.config import (
     SECTOR_ASSET_CODES, SECTOR_M, SECTOR_N, SECTOR_K, SECTOR_CORR_THRESHOLD, SECTOR_STOP_LOSS_PCT,
+    SORTINO_M, SORTINO_N, SORTINO_K, SORTINO_CORR_THRESHOLD, SORTINO_STOP_LOSS_PCT,
 )
-from src.strategy import SectorRotationStrategy
+from src.strategy import SectorRotationStrategy, SortinoRotationStrategy
+
+STRATEGIES = {
+    '1': {
+        'name': '行业轮动 - Sharpe因子 (Return/Vol)',
+        'type': 'sector_rotation',
+        'class': SectorRotationStrategy,
+        'params': lambda: dict(m=SECTOR_M, n=SECTOR_N, k=SECTOR_K,
+                               corr_threshold=SECTOR_CORR_THRESHOLD, stop_loss_pct=SECTOR_STOP_LOSS_PCT),
+        'optimize': optimize_sector_params,
+        'config_hint': 'SECTOR_M, SECTOR_N, SECTOR_STOP_LOSS_PCT',
+    },
+    '2': {
+        'name': '行业轮动 - Sortino因子 (Return/DownsideVol)',
+        'type': 'sortino_rotation',
+        'class': SortinoRotationStrategy,
+        'params': lambda: dict(m=SORTINO_M, n=SORTINO_N, k=SORTINO_K,
+                               corr_threshold=SORTINO_CORR_THRESHOLD, stop_loss_pct=SORTINO_STOP_LOSS_PCT),
+        'optimize': optimize_sortino_params,
+        'config_hint': 'SORTINO_M, SORTINO_N, SORTINO_STOP_LOSS_PCT',
+    },
+}
+
 
 def print_asset_pnl(engine):
     """打印资产贡献明细"""
@@ -25,7 +48,6 @@ def handle_update_data():
     assets_to_update = list(SECTOR_ASSET_CODES.items())
     failed_assets = update_all_data(assets_to_update=assets_to_update)
 
-    # 处理失败重试
     while failed_assets:
         print(f"\n警告: 以下 {len(failed_assets)} 个资产更新失败:")
         for name, code in failed_assets:
@@ -49,28 +71,23 @@ def handle_update_data():
     else:
         print(f"\n数据更新完成，但有 {len(failed_assets)} 个资产更新失败。")
 
-def main():
+def strategy_menu(s):
+    """策略子菜单：回测 / 优化 / 信号"""
     while True:
-        print("\n" + "="*30)
-        print("   行业轮动策略 (Sector Rotation)   ")
-        print("="*30)
-        print("1. 运行回测 (Run Backtest)")
-        print("2. 优化参数 (Optimize Params)")
-        print("3. 获取实盘建议 (Get Trading Signal)")
-        print("4. 更新数据 (Update Data)")
-        print("0. 退出 (Exit)")
-        print("="*30)
+        print(f"\n--- {s['name']} ---")
+        print("1. 运行回测")
+        print("2. 优化参数")
+        print("3. 获取实盘建议")
+        print("0. 返回上级")
 
-        choice = input("请输入选项 (0-4): ").strip()
+        choice = input("请选择 (0-3): ").strip()
 
         if choice == '1':
-            print(f"\n正在运行行业轮动策略回测 (M={SECTOR_M}, N={SECTOR_N}, K={SECTOR_K}, SL={SECTOR_STOP_LOSS_PCT:.0%})...")
+            params = s['params']()
+            print(f"\n正在运行回测 (M={params['m']}, N={params['n']}, K={params['k']}, SL={params['stop_loss_pct']:.0%})...")
             data_map = load_all_data(asset_codes=SECTOR_ASSET_CODES)
             engine = BacktestEngine(data_map=data_map)
-            strategy = SectorRotationStrategy(
-                m=SECTOR_M, n=SECTOR_N, k=SECTOR_K,
-                corr_threshold=SECTOR_CORR_THRESHOLD, stop_loss_pct=SECTOR_STOP_LOSS_PCT
-            )
+            strategy = s['class'](**params)
             engine.run(strategy)
             metrics = engine.get_metrics()
             print("\n回测结果:")
@@ -80,23 +97,38 @@ def main():
             print_asset_pnl(engine)
 
         elif choice == '2':
-            print("\n正在优化行业轮动参数...")
-            best_params, _ = optimize_sector_params()
+            print(f"\n正在优化参数...")
+            best_params, _ = s['optimize']()
             if best_params:
-                print(f"\n建议: 请手动更新 src/config.py 中的 SECTOR_M = {best_params['m']}, SECTOR_N = {best_params['n']}, SECTOR_STOP_LOSS_PCT = {best_params['stop_loss_pct']}")
+                print(f"\n建议: 请手动更新 src/config.py 中的 {s['config_hint']}")
 
         elif choice == '3':
-             print("\n正在获取实盘建议...")
-             get_trading_signal(
-                 strategy_type='sector_rotation',
-                 m=SECTOR_M, n=SECTOR_N, k=SECTOR_K,
-                 corr_threshold=SECTOR_CORR_THRESHOLD, stop_loss_pct=SECTOR_STOP_LOSS_PCT,
-                 update=True
-             )
+            params = s['params']()
+            print(f"\n正在获取实盘建议...")
+            get_trading_signal(strategy_type=s['type'], **params, update=True)
 
-        elif choice == '4':
+        elif choice == '0':
+            break
+        else:
+            print("无效选项，请重试。")
+
+def main():
+    while True:
+        print("\n" + "="*30)
+        print("   量化轮动策略系统")
+        print("="*30)
+        for key, s in STRATEGIES.items():
+            print(f"{key}. {s['name']}")
+        print(f"{len(STRATEGIES)+1}. 更新数据")
+        print("0. 退出")
+        print("="*30)
+
+        choice = input("请选择策略或操作: ").strip()
+
+        if choice in STRATEGIES:
+            strategy_menu(STRATEGIES[choice])
+        elif choice == str(len(STRATEGIES)+1):
             handle_update_data()
-
         elif choice == '0':
             print("退出系统。")
             sys.exit(0)

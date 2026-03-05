@@ -66,6 +66,12 @@ class SectorRotationStrategy(Strategy):
     def asset_codes(self):
         return SECTOR_ASSET_CODES
 
+    def _compute_factors(self, prices, daily_rets):
+        """计算轮动因子：Return / Volatility（简化Sharpe）。子类可重写此方法。"""
+        rolling_return = prices / prices.shift(self.n) - 1
+        rolling_vol = daily_rets.rolling(self.n).std()
+        return rolling_return / rolling_vol.replace(0, np.nan)
+
     def on_data_loaded(self):
         # 过滤 data_map，只保留 SECTOR_ASSET_CODES 中的资产
         filtered_data_map = {k: v for k, v in self.data_map.items() if k in self.sector_assets}
@@ -85,10 +91,8 @@ class SectorRotationStrategy(Strategy):
         # 2. Calculate Daily Returns
         daily_rets = prices.pct_change().fillna(0)
 
-        # 3. Calculate Factor: Return / Volatility over past n days
-        rolling_return = prices / prices.shift(self.n) - 1
-        rolling_vol = daily_rets.rolling(self.n).std()
-        self.factors = rolling_return / rolling_vol.replace(0, np.nan)
+        # 3. Calculate Factor
+        self.factors = self._compute_factors(prices, daily_rets)
 
         # 4. Calculate Rolling Correlations
         rolling_corr = daily_rets.rolling(self.k).corr()
@@ -177,3 +181,16 @@ class SectorRotationStrategy(Strategy):
             return {asset: weight for asset in selected}
 
         return {}
+
+
+class SortinoRotationStrategy(SectorRotationStrategy):
+    """
+    行业轮动策略（Sortino因子）：使用 Return / Downside Volatility 作为轮动因子，
+    只惩罚下行波动，不惩罚上行波动。
+    """
+
+    def _compute_factors(self, prices, daily_rets):
+        rolling_return = prices / prices.shift(self.n) - 1
+        downside_rets = daily_rets.clip(upper=0)
+        rolling_downside_vol = downside_rets.rolling(self.n).std()
+        return rolling_return / rolling_downside_vol.replace(0, np.nan)
