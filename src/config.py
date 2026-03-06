@@ -33,8 +33,6 @@ SECTOR_ASSET_CODES  = {
 
     # 备选
     # "dividend": "510880",  # 红利ETF
-    # 'dividend1': '512890', # 红利ETF1
-    # 'dividend2': '515180', # 红利ETF2
     # 'sp500': '513500', # 标普500
     # 'tourism': '159766',  # 旅游ETF
     # 'japen': '513880', # 日经225ETF
@@ -48,6 +46,9 @@ SECTOR_ASSET_CODES  = {
     # 'ship': '560710', # 船舶ETF
     # 'semiconductor': '513310', # 半导体ETF
     # 'medicine': '520500', # 创新药ETF
+    # 'hk_medicine': '159570', # 港股通创新药ETF
+    # 'energy_chemical': '159981', # 能源化工ETF
+    # 'fishing': '159865', # 养殖ETF
 }
 
 # 行业轮动策略参数 (Sharpe因子: Return/Vol)

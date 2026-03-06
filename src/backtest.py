@@ -156,7 +156,7 @@ class BacktestEngine:
 
             if price <= 0: continue
 
-            target_shares = target_val / price
+            target_shares = (target_val // price // 100) * 100
             current_shares = self.positions.get(asset, 0)
 
             diff_shares = target_shares - current_shares
