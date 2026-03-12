@@ -18,6 +18,7 @@ SECTOR_ASSET_CODES  = {
 
     # 防御
     'free_cash': '159201', # 自由现金流ETF
+    "dividend": "510880",  # 红利ETF
     
     # 行业
     "bank": "512800",       # 银行ETF (低波动防御)
@@ -25,14 +26,16 @@ SECTOR_ASSET_CODES  = {
     "grid": "159326",       # 电网设备 (具有公用事业属性，与大盘走势往往不同步)
     "liquor": "512690",     # 酒 ETF
     "gold": "518880",      # 黄金ETF
-    'chemical': '159870', # 化工ETF
     'communication': '515880', # 通信ETF
     'ai': '159819', # 人工智能ETF
     'satellite': '159206', # 卫星ETF
     'software': '159852', # 软件ETF
+    'big_data': '515400', # 大数据ETF
 
     # 备选
-    # "dividend": "510880",  # 红利ETF
+    # 'coal': '515220', # 煤炭ETF
+    # 'energy_chemical': '159981', # 能源化工ETF
+    # 'chemical': '159870', # 化工ETF
     # 'sp500': '513500', # 标普500
     # 'tourism': '159766',  # 旅游ETF
     # 'japen': '513880', # 日经225ETF
@@ -45,10 +48,14 @@ SECTOR_ASSET_CODES  = {
     # 'industrial_machine': '159667', # 工业母机ETF
     # 'ship': '560710', # 船舶ETF
     # 'semiconductor': '513310', # 半导体ETF
-    # 'medicine': '520500', # 创新药ETF
-    # 'hk_medicine': '159570', # 港股通创新药ETF
-    # 'energy_chemical': '159981', # 能源化工ETF
     # 'fishing': '159865', # 养殖ETF
+    # 'sp_oil_gas': '159518', # 标普油气ETF
+    # 'hk_medicine': '513120', # 港股创新药ETF
+    # 'internet': '513050', # 中概互联网ETF
+    # 'kcb': '159781', # 科创创业ETF
+    # 'battery': '159755', # 电池ETF
+    # 'cyb50': '159949', # 创业板50ETF
+    # 'pv': '515790', # 光伏ETF
 }
 
 # 行业轮动策略参数 (Sharpe因子: Return/Vol)
