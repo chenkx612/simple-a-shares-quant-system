@@ -9,6 +9,7 @@ SECTOR_ASSET_CODES  = {
     "hs300": "510300",     # 沪深300 (大盘价值/蓝筹)
     "zz1000": "512100",    # 中证1000 (小盘/高弹性，牛市进攻用)
     "cyb": "159915",       # 创业板 (A股成长风格代表，替代科创/芯片)
+    'hs_tech': '513130', # 恒生科技ETF
 
     # 跨境
     "nasdaq": "513100",    # 纳指ETF (美股科技，与A股低相关)
@@ -18,7 +19,6 @@ SECTOR_ASSET_CODES  = {
 
     # 防御
     'free_cash': '159201', # 自由现金流ETF
-    "dividend": "510880",  # 红利ETF
     
     # 行业
     "bank": "512800",       # 银行ETF (低波动防御)
@@ -33,8 +33,13 @@ SECTOR_ASSET_CODES  = {
     'big_data': '515400', # 大数据ETF
 
     # 备选
-    # 'coal': '515220', # 煤炭ETF
+    # "dividend": "510880",  # 红利ETF
+    # 'hk_medicine': '159570', # 港股通创新药ETF
+    # 'semiconductor': '512480', # 半导体ETF
+    # 'sp_oil_gas': '159518', # 标普油气ETF
+    # 'infrastructure': '516970', # 基建ETF
     # 'energy_chemical': '159981', # 能源化工ETF
+    # 'coal': '515220', # 煤炭ETF
     # 'chemical': '159870', # 化工ETF
     # 'sp500': '513500', # 标普500
     # 'tourism': '159766',  # 旅游ETF
@@ -49,8 +54,6 @@ SECTOR_ASSET_CODES  = {
     # 'ship': '560710', # 船舶ETF
     # 'semiconductor': '513310', # 半导体ETF
     # 'fishing': '159865', # 养殖ETF
-    # 'sp_oil_gas': '159518', # 标普油气ETF
-    # 'hk_medicine': '513120', # 港股创新药ETF
     # 'internet': '513050', # 中概互联网ETF
     # 'kcb': '159781', # 科创创业ETF
     # 'battery': '159755', # 电池ETF
