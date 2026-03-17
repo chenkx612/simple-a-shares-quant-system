@@ -31,8 +31,11 @@ SECTOR_ASSET_CODES  = {
     'satellite': '159206', # 卫星ETF
     'software': '159852', # 软件ETF
     'big_data': '515400', # 大数据ETF
+    'hk_security': '513090', # 香港证券ETF
 
     # 备选
+    # 'insurance': '512070', # 证券保险ETF
+    # 'hk_consumer': '513070', # 港股通消费ETF
     # "dividend": "510880",  # 红利ETF
     # 'hk_medicine': '159570', # 港股通创新药ETF
     # 'semiconductor': '512480', # 半导体ETF
