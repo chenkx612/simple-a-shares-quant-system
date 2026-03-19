@@ -72,6 +72,10 @@ class SectorRotationStrategy(Strategy):
         rolling_vol = daily_rets.rolling(self.n).std()
         return rolling_return / rolling_vol.replace(0, np.nan)
 
+    def _filter_factors(self, day_factors):
+        """过滤因子：子类可重写此方法实现因子下限等过滤逻辑。"""
+        return day_factors
+
     def on_data_loaded(self):
         # 过滤 data_map，只保留 SECTOR_ASSET_CODES 中的资产
         filtered_data_map = {k: v for k, v in self.data_map.items() if k in self.sector_assets}
@@ -121,6 +125,7 @@ class SectorRotationStrategy(Strategy):
             # 5b. Get factors, excluding stopped assets
             day_factors = self.factors.loc[date].dropna()
             day_factors = day_factors.drop(stopped_assets, errors='ignore')
+            day_factors = self._filter_factors(day_factors)
 
             if day_factors.empty:
                 prev_selected = []
@@ -194,3 +199,26 @@ class SortinoRotationStrategy(SectorRotationStrategy):
         downside_rets = daily_rets.clip(upper=0)
         rolling_downside_vol = downside_rets.rolling(self.n).std()
         return rolling_return / rolling_downside_vol.replace(0, np.nan)
+
+
+class FactorThresholdRotationStrategy(SectorRotationStrategy):
+    """
+    行业轮动策略（因子下限）：在板块轮动基础上增加因子下限过滤。
+    只有因子值 > factor_lower_bound 的资产才会被考虑买入，否则空仓。
+    每只资产仓位固定为 1/m，不足 m 只时剩余仓位空仓。
+    """
+
+    def __init__(self, factor_lower_bound=0.0, **kwargs):
+        super().__init__(**kwargs)
+        self.factor_lower_bound = factor_lower_bound
+
+    def _filter_factors(self, day_factors):
+        return day_factors[day_factors > self.factor_lower_bound]
+
+    def get_target_weights(self, date):
+        weights = super().get_target_weights(date)
+        if not weights:
+            return weights
+        # 固定每只资产仓位为 1/m，不随实际持仓数量变化
+        fixed_weight = 1.0 / self.m
+        return {asset: fixed_weight for asset in weights}

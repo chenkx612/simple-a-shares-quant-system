@@ -2,10 +2,13 @@ from .config import (
     SECTOR_ASSET_CODES,
     SECTOR_M, SECTOR_N, SECTOR_K, SECTOR_CORR_THRESHOLD, SECTOR_STOP_LOSS_PCT,
     SORTINO_M, SORTINO_N, SORTINO_K, SORTINO_CORR_THRESHOLD, SORTINO_STOP_LOSS_PCT,
+    FACTOR_THRESHOLD_M, FACTOR_THRESHOLD_N, FACTOR_THRESHOLD_K,
+    FACTOR_THRESHOLD_CORR_THRESHOLD, FACTOR_THRESHOLD_STOP_LOSS_PCT,
+    FACTOR_THRESHOLD_LOWER_BOUND,
 )
 from .data_loader import update_all_data, load_all_data
 from .backtest import BacktestEngine
-from .strategy import SectorRotationStrategy, SortinoRotationStrategy
+from .strategy import SectorRotationStrategy, SortinoRotationStrategy, FactorThresholdRotationStrategy
 
 # Strategy registry for extensibility
 STRATEGY_REGISTRY = {
@@ -25,6 +28,16 @@ STRATEGY_REGISTRY = {
             'm': SORTINO_M, 'n': SORTINO_N, 'k': SORTINO_K,
             'corr_threshold': SORTINO_CORR_THRESHOLD,
             'stop_loss_pct': SORTINO_STOP_LOSS_PCT
+        }
+    },
+    'factor_threshold_rotation': {
+        'class': FactorThresholdRotationStrategy,
+        'asset_codes': SECTOR_ASSET_CODES,
+        'default_params': {
+            'm': FACTOR_THRESHOLD_M, 'n': FACTOR_THRESHOLD_N, 'k': FACTOR_THRESHOLD_K,
+            'corr_threshold': FACTOR_THRESHOLD_CORR_THRESHOLD,
+            'stop_loss_pct': FACTOR_THRESHOLD_STOP_LOSS_PCT,
+            'factor_lower_bound': FACTOR_THRESHOLD_LOWER_BOUND,
         }
     },
 }

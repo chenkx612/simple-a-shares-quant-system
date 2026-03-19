@@ -1,13 +1,15 @@
 import sys
 from src.data_loader import update_all_data, load_all_data
 from src.backtest import BacktestEngine
-from src.optimize import optimize_sector_params, optimize_sortino_params
+from src.optimize import optimize_sector_params, optimize_sortino_params, optimize_factor_threshold_params
 from src.trading_signal import get_trading_signal
 from src.config import (
     SECTOR_ASSET_CODES, SECTOR_M, SECTOR_N, SECTOR_K, SECTOR_CORR_THRESHOLD, SECTOR_STOP_LOSS_PCT,
     SORTINO_M, SORTINO_N, SORTINO_K, SORTINO_CORR_THRESHOLD, SORTINO_STOP_LOSS_PCT,
+    FACTOR_THRESHOLD_M, FACTOR_THRESHOLD_N, FACTOR_THRESHOLD_K,
+    FACTOR_THRESHOLD_CORR_THRESHOLD, FACTOR_THRESHOLD_STOP_LOSS_PCT, FACTOR_THRESHOLD_LOWER_BOUND,
 )
-from src.strategy import SectorRotationStrategy, SortinoRotationStrategy
+from src.strategy import SectorRotationStrategy, SortinoRotationStrategy, FactorThresholdRotationStrategy
 
 STRATEGIES = {
     '1': {
@@ -27,6 +29,17 @@ STRATEGIES = {
                                corr_threshold=SORTINO_CORR_THRESHOLD, stop_loss_pct=SORTINO_STOP_LOSS_PCT),
         'optimize': optimize_sortino_params,
         'config_hint': 'SORTINO_M, SORTINO_N, SORTINO_STOP_LOSS_PCT',
+    },
+    '3': {
+        'name': '行业轮动 - 因子下限 (Factor Threshold)',
+        'type': 'factor_threshold_rotation',
+        'class': FactorThresholdRotationStrategy,
+        'params': lambda: dict(m=FACTOR_THRESHOLD_M, n=FACTOR_THRESHOLD_N, k=FACTOR_THRESHOLD_K,
+                               corr_threshold=FACTOR_THRESHOLD_CORR_THRESHOLD,
+                               stop_loss_pct=FACTOR_THRESHOLD_STOP_LOSS_PCT,
+                               factor_lower_bound=FACTOR_THRESHOLD_LOWER_BOUND),
+        'optimize': optimize_factor_threshold_params,
+        'config_hint': 'FACTOR_THRESHOLD_M, FACTOR_THRESHOLD_N, FACTOR_THRESHOLD_STOP_LOSS_PCT, FACTOR_THRESHOLD_LOWER_BOUND',
     },
 }
 
