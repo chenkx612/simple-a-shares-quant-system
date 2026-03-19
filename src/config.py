@@ -9,40 +9,40 @@ SECTOR_ASSET_CODES  = {
     "hs300": "510300",     # 沪深300 (大盘价值/蓝筹)
     "zz1000": "512100",    # 中证1000 (小盘/高弹性，牛市进攻用)
     "cyb": "159915",       # 创业板 (A股成长风格代表，替代科创/芯片)
-    'hs_tech': '513130', # 恒生科技ETF
+    'hs_tech': '513130',   # 恒生科技ETF
 
     # 跨境
-    "nasdaq": "513100",    # 纳指ETF (美股科技，与A股低相关)
-    "india": "164824",     # 印度基金 (新兴市场独立行情)
-    "germany": "513030",   # 德国ETF (欧洲价值)
+    "nasdaq": "513100",      # 纳指ETF (美股科技，与A股低相关)
+    "india": "164824",       # 印度基金 (新兴市场独立行情)
+    "germany": "513030",     # 德国ETF (欧洲价值)
     'nasdaq_tech': '159509', # 纳指科技ETF
 
     # 防御
-    'free_cash': '159201', # 自由现金流ETF
+    'free_cash': '159201',     # 自由现金流ETF
     
     # 行业
-    "bank": "512800",       # 银行ETF (低波动防御)
-    "bean": "159985",      # 豆粕 (农产品，零相关)
-    "grid": "159326",       # 电网设备 (具有公用事业属性，与大盘走势往往不同步)
-    "liquor": "512690",     # 酒 ETF
-    "gold": "518880",      # 黄金ETF
+    "bank": "512800",          # 银行ETF
+    "bean": "159985",          # 豆粕 (农产品，零相关)
+    "grid": "159326",          # 电网设备 (具有公用事业属性，与大盘走势往往不同步)
+    "liquor": "512690",        # 酒 ETF
+    "gold": "518880",          # 黄金ETF
     'communication': '515880', # 通信ETF
-    'ai': '159819', # 人工智能ETF
-    'satellite': '159206', # 卫星ETF
-    'software': '159852', # 软件ETF
-    'big_data': '515400', # 大数据ETF
-    'hk_security': '513090', # 香港证券ETF
+    'ai': '159819',            # 人工智能ETF
+    'satellite': '159206',     # 卫星ETF
+    'software': '159852',      # 软件ETF
+    'big_data': '515400',      # 大数据ETF
+    'hk_security': '513090',   # 香港证券ETF
 
     # 备选
+    # 'coal': '515220', # 煤炭ETF
+    # 'sp_oil_gas': '159518', # 标普油气ETF
+    # 'energy_chemical': '159981', # 能源化工ETF
     # 'insurance': '512070', # 证券保险ETF
     # 'hk_consumer': '513070', # 港股通消费ETF
     # "dividend": "510880",  # 红利ETF
     # 'hk_medicine': '159570', # 港股通创新药ETF
     # 'semiconductor': '512480', # 半导体ETF
-    # 'sp_oil_gas': '159518', # 标普油气ETF
     # 'infrastructure': '516970', # 基建ETF
-    # 'energy_chemical': '159981', # 能源化工ETF
-    # 'coal': '515220', # 煤炭ETF
     # 'chemical': '159870', # 化工ETF
     # 'sp500': '513500', # 标普500
     # 'tourism': '159766',  # 旅游ETF

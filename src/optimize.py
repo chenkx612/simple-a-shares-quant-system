@@ -156,8 +156,8 @@ def optimize_sector_params():
         strategy_class=SectorRotationStrategy,
         param_grid={
             'm': [3, 4, 5],
-            'n': [15, 20, 25, 30, 35],
-            'stop_loss_pct': [0.04, 0.05, 0.06, 0.07, 0.08]
+            'n': range(10, 41, 5),
+            'stop_loss_pct': [0.04, 0.06, 0.08]
         },
         fixed_params={'k': SECTOR_K, 'corr_threshold': SECTOR_CORR_THRESHOLD},
         data_map=data_map,
