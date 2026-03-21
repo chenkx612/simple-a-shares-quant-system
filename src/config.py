@@ -1,5 +1,5 @@
 # 默认回测参数
-START_DATE = '20200101' # 回测开始时间
+START_DATE = '20230301' # 回测开始时间
 DATA_DIR = 'data'
 COMMISSION_RATE = 0.0003 # 双边佣金万分之三
 
@@ -34,6 +34,9 @@ SECTOR_ASSET_CODES  = {
     'hk_security': '513090',   # 香港证券ETF
 
     # 备选
+    # 'pv': '515790', # 光伏ETF
+    # 'battery': '159755', # 电池ETF
+    # 'cyb50': '159949', # 创业板50ETF
     # 'coal': '515220', # 煤炭ETF
     # 'sp_oil_gas': '159518', # 标普油气ETF
     # 'energy_chemical': '159981', # 能源化工ETF
@@ -59,17 +62,14 @@ SECTOR_ASSET_CODES  = {
     # 'fishing': '159865', # 养殖ETF
     # 'internet': '513050', # 中概互联网ETF
     # 'kcb': '159781', # 科创创业ETF
-    # 'battery': '159755', # 电池ETF
-    # 'cyb50': '159949', # 创业板50ETF
-    # 'pv': '515790', # 光伏ETF
 }
 
 # 行业轮动策略参数 (Sharpe因子: Return/Vol)
-SECTOR_M = 4  # 持有资产数量
-SECTOR_N = 25  # 因子计算窗口 (收益/波动)
+SECTOR_M = 5  # 持有资产数量
+SECTOR_N = 20  # 因子计算窗口 (收益/波动)
 SECTOR_K = 100  # 相关性计算窗口
 SECTOR_CORR_THRESHOLD = 0.9  # 相关性阈值
-SECTOR_STOP_LOSS_PCT = 0.06  # 止损阈值
+SECTOR_STOP_LOSS_PCT = 0.08  # 止损阈值
 
 # Sortino轮动策略参数 (Sortino因子: Return/DownsideVol)
 SORTINO_M = 4

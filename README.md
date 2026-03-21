@@ -1,10 +1,10 @@
 # Simple A-Shares Quant System
 
-个人量化投资项目，基于 Python 实现的动量轮动策略量化系统。本项目专注于**行业轮动策略**，提供 Sharpe 和 Sortino 两种因子变体，旨在捕捉行业轮动收益并控制回撤。
+个人量化投资项目，基于 Python 实现的动量轮动策略量化系统。本项目专注于**行业轮动策略**，提供 Sharpe、Sortino 和因子下限三种策略变体，旨在捕捉行业轮动收益并控制回撤。
 
 ## 核心策略算法
 
-本项目实现了两套基于动量的行业轮动策略，使用同一套行业/主题 ETF 资产池。
+本项目实现了三套基于动量的行业轮动策略，使用同一套行业/主题 ETF 资产池。
 
 ### 1. 行业轮动 - Sharpe因子 (Return/Volatility)
 
@@ -45,6 +45,21 @@
     *   `SORTINO_CORR_THRESHOLD`: 相关性阈值（默认 0.9）
     *   `SORTINO_STOP_LOSS_PCT`: 止损阈值（默认 6%）
 
+### 3. 行业轮动 - 因子下限 (Factor Threshold)
+
+在 Sharpe 因子策略基础上增加因子下限过滤，只有因子值高于阈值的资产才会被考虑买入，避免在市场整体弱势时持有弱势资产。
+
+*   **选股因子**: **Sharpe 因子 + 下限过滤**
+    *   只有当因子 > `factor_lower_bound` 时才考虑买入
+    *   每只资产仓位固定为 1/m，不足 m 只时剩余仓位空仓
+*   **参数配置** (src/config.py):
+    *   `FACTOR_THRESHOLD_M`: 持有资产数量（默认 4）
+    *   `FACTOR_THRESHOLD_N`: 因子计算窗口（默认 25 天）
+    *   `FACTOR_THRESHOLD_K`: 相关性计算窗口（默认 100 天）
+    *   `FACTOR_THRESHOLD_CORR_THRESHOLD`: 相关性阈值（默认 0.9）
+    *   `FACTOR_THRESHOLD_STOP_LOSS_PCT`: 止损阈值（默认 6%）
+    *   `FACTOR_THRESHOLD_LOWER_BOUND`: 因子下限（默认 0.0）
+
 ## 资产池配置
 
 ### 行业轮动资产池
@@ -54,12 +69,12 @@
 | hs300 | 510300 | 沪深300 |
 | zz1000 | 512100 | 中证1000 |
 | cyb | 159915 | 创业板 |
+| hs_tech | 513130 | 恒生科技ETF |
 | nasdaq | 513100 | 纳指ETF |
 | india | 164824 | 印度基金 |
 | germany | 513030 | 德国ETF |
 | nasdaq_tech | 159509 | 纳指科技ETF |
 | free_cash | 159201 | 自由现金流ETF |
-| dividend | 510880 | 红利ETF |
 | bank | 512800 | 银行ETF |
 | bean | 159985 | 豆粕ETF |
 | grid | 159326 | 电网设备 |
@@ -70,6 +85,7 @@
 | satellite | 159206 | 卫星ETF |
 | software | 159852 | 软件ETF |
 | big_data | 515400 | 大数据ETF |
+| hk_security | 513090 | 香港证券ETF |
 
 ## 回测引擎特性
 
@@ -105,6 +121,9 @@ python -m src.trading_signal
 
 # 行业轮动 - Sortino因子
 python -m src.trading_signal --strategy sortino_rotation
+
+# 行业轮动 - 因子下限
+python -m src.trading_signal --strategy factor_threshold_rotation
 ```
 
 ### 运行回测
@@ -135,7 +154,7 @@ python -m src.optimize
 .
 ├── main.py                 # 交互式菜单入口
 ├── src/
-│   ├── strategy.py         # 策略核心逻辑 (SectorRotationStrategy, SortinoRotationStrategy)
+│   ├── strategy.py         # 策略核心逻辑 (SectorRotationStrategy, SortinoRotationStrategy, FactorThresholdRotationStrategy)
 │   ├── backtest.py         # 回测引擎 (BacktestEngine)
 │   ├── config.py           # 资产代码映射与策略参数配置
 │   ├── data_loader.py      # 数据加载与更新 (AkShare数据源)
