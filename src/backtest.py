@@ -252,8 +252,8 @@ class BacktestEngine:
         return {
             "Annualized Return": ann_ret,
             "Max Drawdown": max_dd,
-            "Sortino Ratio": sortino,
             "Calmar Ratio": calmar,
+            "Sortino Ratio": sortino,
         }
 
 if __name__ == "__main__":

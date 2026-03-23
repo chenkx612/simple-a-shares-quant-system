@@ -117,8 +117,14 @@ def _print_signal(strategy, n, k, stop_loss_pct):
 
     print("RECOMMENDATION: Buy/Hold Selected Assets")
 
-    weight = 1.0 / len(selected_assets)
-    print("\nTarget Allocation (Equal Weight):")
+    if isinstance(strategy, FactorThresholdRotationStrategy):
+        weight = 1.0 / strategy.m
+        cash_pct = 1.0 - weight * len(selected_assets)
+        print(f"\nTarget Allocation (Fixed 1/{strategy.m} per asset):")
+    else:
+        weight = 1.0 / len(selected_assets)
+        cash_pct = 0.0
+        print("\nTarget Allocation (Equal Weight):")
 
     if last_date in strategy.factors.index:
         factors = strategy.factors.loc[last_date]
@@ -133,6 +139,8 @@ def _print_signal(strategy, n, k, stop_loss_pct):
             code = asset_codes.get(asset, "N/A")
             print(f"  {asset:<10} ({code:<6}): {weight:.0%}")
 
+    if cash_pct > 0:
+        print(f"  {'Cash':<10} {'':>8}: {cash_pct:.0%}")
 
 if __name__ == "__main__":
     import argparse

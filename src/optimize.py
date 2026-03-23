@@ -2,9 +2,11 @@ from itertools import product
 from .backtest import BacktestEngine
 from .strategy import SectorRotationStrategy, SortinoRotationStrategy, FactorThresholdRotationStrategy
 from .config import (
-    SECTOR_ASSET_CODES, SECTOR_K, SECTOR_CORR_THRESHOLD,
-    SORTINO_K, SORTINO_CORR_THRESHOLD,
-    FACTOR_THRESHOLD_K, FACTOR_THRESHOLD_CORR_THRESHOLD,
+    SECTOR_ASSET_CODES,
+    SECTOR_M, SECTOR_N, SECTOR_K, SECTOR_CORR_THRESHOLD, SECTOR_STOP_LOSS_PCT,
+    SORTINO_M, SORTINO_N, SORTINO_K, SORTINO_CORR_THRESHOLD, SORTINO_STOP_LOSS_PCT,
+    FACTOR_THRESHOLD_M, FACTOR_THRESHOLD_N, FACTOR_THRESHOLD_K,
+    FACTOR_THRESHOLD_CORR_THRESHOLD, FACTOR_THRESHOLD_STOP_LOSS_PCT, FACTOR_THRESHOLD_LOWER_BOUND,
 )
 from .data_loader import load_all_data
 
@@ -64,7 +66,7 @@ class GridSearchOptimizer:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 engine = BacktestEngine(data_map=self.data_map)
-                strategy = self.strategy_class(**params, **self.fixed_params)
+                strategy = self.strategy_class(**{**self.fixed_params, **params})
                 engine.run(strategy)
 
             metrics = engine.get_metrics()
@@ -123,7 +125,7 @@ class GridSearchOptimizer:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             engine = BacktestEngine(data_map=self.data_map)
-            strategy = self.strategy_class(**best_params, **self.fixed_params)
+            strategy = self.strategy_class(**{**self.fixed_params, **best_params})
             engine.run(strategy)
 
         metrics = engine.get_metrics()
@@ -155,11 +157,10 @@ def optimize_sector_params():
     optimizer = GridSearchOptimizer(
         strategy_class=SectorRotationStrategy,
         param_grid={
-            'm': [4, 5, 6],
-            'n': range(10, 31, 5),
-            'stop_loss_pct': [0.09, 0.1, 0.11]
+            'm': range(3, 11),
+            'n': range(10, 51, 5),
         },
-        fixed_params={'k': SECTOR_K, 'corr_threshold': SECTOR_CORR_THRESHOLD},
+        fixed_params={'m': SECTOR_M, 'n': SECTOR_N, 'k': SECTOR_K, 'corr_threshold': SECTOR_CORR_THRESHOLD, 'stop_loss_pct': SECTOR_STOP_LOSS_PCT},
         data_map=data_map,
         constraints=[dd_less_than_return]
     )
@@ -187,7 +188,7 @@ def optimize_sortino_params():
             'n': [10, 15, 20, 25, 30],
             'stop_loss_pct': [0.05, 0.06, 0.07, 0.08, 0.09, 0.10]
         },
-        fixed_params={'k': SORTINO_K, 'corr_threshold': SORTINO_CORR_THRESHOLD},
+        fixed_params={'m': SORTINO_M, 'n': SORTINO_N, 'k': SORTINO_K, 'corr_threshold': SORTINO_CORR_THRESHOLD, 'stop_loss_pct': SORTINO_STOP_LOSS_PCT},
         data_map=data_map,
         constraints=[dd_less_than_return]
     )
@@ -211,12 +212,11 @@ def optimize_factor_threshold_params():
     optimizer = GridSearchOptimizer(
         strategy_class=FactorThresholdRotationStrategy,
         param_grid={
-            # 'm': [3, 4, 5],
-            # 'n': [15, 20, 25, 30, 35],
-            # 'stop_loss_pct': [0.04, 0.05, 0.06, 0.07, 0.08],
-            'factor_lower_bound': [i / 10 for i in range(-30, 31, 2)],
+            'm': range(4, 7),
+            'n': range(20, 31, 5),
+            'factor_lower_bound': [i / 10 for i in range(-20, 21, 5)],
         },
-        fixed_params={'k': FACTOR_THRESHOLD_K, 'corr_threshold': FACTOR_THRESHOLD_CORR_THRESHOLD},
+        fixed_params={'m': FACTOR_THRESHOLD_M, 'n': FACTOR_THRESHOLD_N, 'k': FACTOR_THRESHOLD_K, 'corr_threshold': FACTOR_THRESHOLD_CORR_THRESHOLD, 'stop_loss_pct': FACTOR_THRESHOLD_STOP_LOSS_PCT, 'factor_lower_bound': FACTOR_THRESHOLD_LOWER_BOUND},
         data_map=data_map,
         constraints=[dd_less_than_return]
     )
