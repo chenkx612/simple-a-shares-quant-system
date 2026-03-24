@@ -30,6 +30,9 @@ SECTOR_ASSET_CODES  = {
     'hk_security': '513090',   # 香港证券ETF
 
     # 备选
+    # 'hk_medicine': '513120', # 港股创新药ETF
+    # 'metals': '512400', # 有色金属ETF
+    # 'hk_consumer': '513070', # 港股通消费ETF
     # 'sp_oil_gas': '159518', # 标普油气ETF
     # 'coal': '515220', # 煤炭ETF
     # '30y_bond': '511090', # 30年国债ETF
@@ -39,9 +42,7 @@ SECTOR_ASSET_CODES  = {
     # 'cyb50': '159949', # 创业板50ETF
     # 'energy_chemical': '159981', # 能源化工ETF
     # 'insurance': '512070', # 证券保险ETF
-    # 'hk_consumer': '513070', # 港股通消费ETF
     # "dividend": "510880",  # 红利ETF
-    # 'hk_medicine': '159570', # 港股通创新药ETF
     # 'semiconductor': '512480', # 半导体ETF
     # 'infrastructure': '516970', # 基建ETF
     # 'chemical': '159870', # 化工ETF
@@ -52,10 +53,8 @@ SECTOR_ASSET_CODES  = {
     # 'chip': '588200', # 芯片ETF
     # 'media': '512980', # 传媒ETF
     # 'rare_earth': '516150', # 稀土ETF
-    # 'metals': '512400', # 有色ETF
     # 'military': '512710', # 军工ETF
     # 'industrial_machine': '159667', # 工业母机ETF
-    # 'ship': '560710', # 船舶ETF
     # 'semiconductor': '513310', # 半导体ETF
     # 'fishing': '159865', # 养殖ETF
     # 'internet': '513050', # 中概互联网ETF
