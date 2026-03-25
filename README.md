@@ -73,19 +73,19 @@
 | nasdaq | 513100 | 纳指ETF |
 | india | 164824 | 印度基金 |
 | germany | 513030 | 德国ETF |
-| nasdaq_tech | 159509 | 纳指科技ETF |
-| free_cash | 159201 | 自由现金流ETF |
+| nas_tech | 159509 | 纳指科技ETF |
+| fcash | 159201 | 自由现金流ETF |
 | bank | 512800 | 银行ETF |
 | bean | 159985 | 豆粕ETF |
 | grid | 159326 | 电网设备 |
 | liquor | 512690 | 酒ETF |
 | gold | 518880 | 黄金ETF |
-| communication | 515880 | 通信ETF |
+| telecom | 515880 | 通信ETF |
 | ai | 159819 | 人工智能ETF |
 | satellite | 159206 | 卫星ETF |
 | software | 159852 | 软件ETF |
 | big_data | 515400 | 大数据ETF |
-| hk_security | 513090 | 香港证券ETF |
+| hksec | 513090 | 香港证券ETF |
 
 ## 回测引擎特性
 

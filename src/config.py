@@ -10,28 +10,30 @@ SECTOR_ASSET_CODES  = {
     'hs_tech': '513130',   # 恒生科技ETF
 
     # 跨境
-    "nasdaq": "513100",      # 纳指ETF (美股科技，与A股低相关)
-    "india": "164824",       # 印度基金 (新兴市场独立行情)
-    'nasdaq_tech': '159509', # 纳指科技ETF
+    "nasdaq": "513100",      # 纳指ETF
+    'nas_tech': '159509',    # 纳指科技ETF
+    "india": "164824",       # 印度基金
 
     # 防御
-    'free_cash': '159201',     # 自由现金流ETF
+    'fcash': '159201',       # 自由现金流ETF
     
     # 行业
     "bank": "512800",          # 银行ETF
     "bean": "159985",          # 豆粕 (农产品，零相关)
     "grid": "159326",          # 电网设备 (具有公用事业属性，与大盘走势往往不同步)
     "gold": "518880",          # 黄金ETF
-    'communication': '515880', # 通信ETF
+    'telecom': '515880',       # 通信ETF
     'ai': '159819',            # 人工智能ETF
     'satellite': '159206',     # 卫星ETF
     'software': '159852',      # 软件ETF
     'big_data': '515400',      # 大数据ETF
-    'hk_security': '513090',   # 香港证券ETF
+    'hksec': '513090',         # 香港证券ETF
 
     # 备选
+    # 'metals': '516650', # 有色金属ETF
+    # 'semiconductor': '159516', # 半导体设备ETF
+    # 'tourism': '159766',  # 旅游ETF
     # 'hk_medicine': '513120', # 港股创新药ETF
-    # 'metals': '512400', # 有色金属ETF
     # 'hk_consumer': '513070', # 港股通消费ETF
     # 'sp_oil_gas': '159518', # 标普油气ETF
     # 'coal': '515220', # 煤炭ETF
@@ -43,11 +45,9 @@ SECTOR_ASSET_CODES  = {
     # 'energy_chemical': '159981', # 能源化工ETF
     # 'insurance': '512070', # 证券保险ETF
     # "dividend": "510880",  # 红利ETF
-    # 'semiconductor': '512480', # 半导体ETF
     # 'infrastructure': '516970', # 基建ETF
     # 'chemical': '159870', # 化工ETF
     # 'sp500': '513500', # 标普500
-    # 'tourism': '159766',  # 旅游ETF
     # 'japen': '513880', # 日经225ETF
     # 'game': '159869', # 游戏ETF
     # 'chip': '588200', # 芯片ETF
@@ -78,7 +78,7 @@ SORTINO_STOP_LOSS_PCT = 0.06
 # 因子下限轮动策略参数 (板块轮动 + 因子下限过滤)
 FACTOR_THRESHOLD_M = 5
 FACTOR_THRESHOLD_N = 25
+FACTOR_THRESHOLD_LOWER_BOUND = 0.5  # 因子下限，低于此值的资产不买入
 FACTOR_THRESHOLD_K = 100
 FACTOR_THRESHOLD_CORR_THRESHOLD = 0.9
 FACTOR_THRESHOLD_STOP_LOSS_PCT = 0.1
-FACTOR_THRESHOLD_LOWER_BOUND = 0.5  # 因子下限，低于此值的资产不买入
