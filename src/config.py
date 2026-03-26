@@ -28,19 +28,19 @@ SECTOR_ASSET_CODES  = {
     'software': '159852',      # 软件ETF
     'big_data': '515400',      # 大数据ETF
     'hksec': '513090',         # 香港证券ETF
+    'sp_oil_gas': '159518',    # 标普油气ETF
 
     # 备选
+    # 'coal': '515220', # 煤炭ETF
+    # 'battery': '159755', # 电池ETF
     # 'metals': '516650', # 有色金属ETF
     # 'semiconductor': '159516', # 半导体设备ETF
     # 'tourism': '159766',  # 旅游ETF
     # 'hk_medicine': '513120', # 港股创新药ETF
     # 'hk_consumer': '513070', # 港股通消费ETF
-    # 'sp_oil_gas': '159518', # 标普油气ETF
-    # 'coal': '515220', # 煤炭ETF
     # '30y_bond': '511090', # 30年国债ETF
     # 'pv': '515790', # 光伏ETF
     # "liquor": "512690",        # 酒 ETF
-    # 'battery': '159755', # 电池ETF
     # 'cyb50': '159949', # 创业板50ETF
     # 'energy_chemical': '159981', # 能源化工ETF
     # 'insurance': '512070', # 证券保险ETF
