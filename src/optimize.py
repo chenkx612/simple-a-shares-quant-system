@@ -1,4 +1,5 @@
 from itertools import product
+from tqdm import tqdm
 from .backtest import BacktestEngine
 from .strategy import SectorRotationStrategy, SortinoRotationStrategy, FactorThresholdRotationStrategy
 from .config import (
@@ -59,10 +60,10 @@ class GridSearchOptimizer:
         best_params = None
         results = []
 
-        if verbose:
-            self._print_header()
+        all_combinations = list(self._iter_param_combinations())
+        pbar = tqdm(all_combinations, desc="Optimizing", unit="combo") if verbose else all_combinations
 
-        for params in self._iter_param_combinations():
+        for params in pbar:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 engine = BacktestEngine(data_map=self.data_map)
@@ -73,8 +74,11 @@ class GridSearchOptimizer:
             score = self._compute_score(metrics)
             satisfies_constraints = self._check_constraints(metrics)
 
-            if verbose:
-                self._print_row(params, metrics, score, satisfies_constraints)
+            if verbose and hasattr(pbar, 'set_postfix'):
+                pbar.set_postfix({
+                    'best_score': f'{best_score:.2f}',
+                    'valid': '✓' if satisfies_constraints else ''
+                })
 
             if metrics:
                 results.append({
@@ -92,21 +96,6 @@ class GridSearchOptimizer:
             self._print_footer(best_params, best_score)
 
         return best_params, results
-
-    def _print_header(self):
-        param_names = list(self.param_grid.keys())
-        header = " | ".join(f"{p:<6}" for p in param_names)
-        valid_col = " | Valid" if self.constraints else ""
-        metric_name = {'sortino': 'Sortino', 'calmar': 'Calmar', 'sharpe': 'Sharpe', 'return': 'Return'}.get(self.metric, self.metric)
-        print(f"\n{header} | {metric_name:<8}{valid_col}")
-        print("-" * (len(header) + 12 + (8 if self.constraints else 0)))
-
-    def _print_row(self, params, metrics, score, satisfies_constraints=True):
-        if not metrics:
-            return
-        param_vals = " | ".join(f"{params[p]:<6}" for p in self.param_grid.keys())
-        valid_col = f" | {'✓' if satisfies_constraints else '✗':^5}" if self.constraints else ""
-        print(f"{param_vals} | {score:<8.2f}{valid_col}")
 
     def _print_footer(self, best_params, best_score):
         param_names = list(self.param_grid.keys())
@@ -147,7 +136,6 @@ def optimize_sector_params():
     目标：最大化 Sortino 比率
     """
     print(f"\nRunning Sector Rotation Optimization (Sortino, |MaxDD| < AnnRet)...")
-    print(f"Fixed Parameters: K={SECTOR_K}, Corr Threshold={SECTOR_CORR_THRESHOLD}")
     print(f"Asset Pool: {list(SECTOR_ASSET_CODES.keys())}")
 
     def dd_less_than_return(m):
@@ -174,7 +162,6 @@ def optimize_sortino_params():
     目标：最大化 Sortino 比率
     """
     print(f"\nRunning Sortino Rotation Optimization (Sortino, |MaxDD| < AnnRet)...")
-    print(f"Fixed Parameters: K={SORTINO_K}, Corr Threshold={SORTINO_CORR_THRESHOLD}")
     print(f"Asset Pool: {list(SECTOR_ASSET_CODES.keys())}")
 
     def dd_less_than_return(m):
@@ -202,7 +189,6 @@ def optimize_factor_threshold_params():
     目标：最大化 Sortino 比率
     """
     print(f"\nRunning Factor Threshold Rotation Optimization (Sortino, |MaxDD| < AnnRet)...")
-    print(f"Fixed Parameters: K={FACTOR_THRESHOLD_K}, Corr Threshold={FACTOR_THRESHOLD_CORR_THRESHOLD}")
     print(f"Asset Pool: {list(SECTOR_ASSET_CODES.keys())}")
 
     def dd_less_than_return(m):

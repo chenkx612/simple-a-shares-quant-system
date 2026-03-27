@@ -31,12 +31,14 @@ SECTOR_ASSET_CODES  = {
     'sp_oil_gas': '159518',    # 标普油气ETF
 
     # 备选
+    # 'hk_medicine': '159570', # 港股通创新药ETF
+    # 'medicine': '159992', # 创新药ETF
+    # 'rare_metal': '562800', # 稀有金属ETF
     # 'coal': '515220', # 煤炭ETF
     # 'battery': '159755', # 电池ETF
     # 'metals': '516650', # 有色金属ETF
     # 'semiconductor': '159516', # 半导体设备ETF
     # 'tourism': '159766',  # 旅游ETF
-    # 'hk_medicine': '513120', # 港股创新药ETF
     # 'hk_consumer': '513070', # 港股通消费ETF
     # '30y_bond': '511090', # 30年国债ETF
     # 'pv': '515790', # 光伏ETF

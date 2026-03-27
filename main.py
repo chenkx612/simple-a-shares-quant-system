@@ -19,7 +19,6 @@ STRATEGIES = {
         'params': lambda: dict(m=SECTOR_M, n=SECTOR_N, k=SECTOR_K,
                                corr_threshold=SECTOR_CORR_THRESHOLD, stop_loss_pct=SECTOR_STOP_LOSS_PCT),
         'optimize': optimize_sector_params,
-        'config_hint': 'SECTOR_M, SECTOR_N, SECTOR_STOP_LOSS_PCT',
     },
     '2': {
         'name': '行业轮动 - Sortino因子 (Return/DownsideVol)',
@@ -28,7 +27,6 @@ STRATEGIES = {
         'params': lambda: dict(m=SORTINO_M, n=SORTINO_N, k=SORTINO_K,
                                corr_threshold=SORTINO_CORR_THRESHOLD, stop_loss_pct=SORTINO_STOP_LOSS_PCT),
         'optimize': optimize_sortino_params,
-        'config_hint': 'SORTINO_M, SORTINO_N, SORTINO_STOP_LOSS_PCT',
     },
     '3': {
         'name': '行业轮动 - 因子下限 (Factor Threshold)',
@@ -39,7 +37,6 @@ STRATEGIES = {
                                stop_loss_pct=FACTOR_THRESHOLD_STOP_LOSS_PCT,
                                factor_lower_bound=FACTOR_THRESHOLD_LOWER_BOUND),
         'optimize': optimize_factor_threshold_params,
-        'config_hint': 'FACTOR_THRESHOLD_M, FACTOR_THRESHOLD_N, FACTOR_THRESHOLD_STOP_LOSS_PCT, FACTOR_THRESHOLD_LOWER_BOUND',
     },
 }
 
@@ -112,8 +109,6 @@ def strategy_menu(s):
         elif choice == '2':
             print(f"\n正在优化参数...")
             best_params, _ = s['optimize']()
-            if best_params:
-                print(f"\n建议: 请手动更新 src/config.py 中的 {s['config_hint']}")
 
         elif choice == '3':
             params = s['params']()
