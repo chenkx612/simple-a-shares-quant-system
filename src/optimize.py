@@ -200,7 +200,7 @@ def optimize_factor_threshold_params():
         param_grid={
             'm': range(4, 7),
             'n': range(15, 40, 5),
-            'factor_lower_bound': [i / 10 for i in range(-5, 20, 5)],
+            'factor_lower_bound': [i / 10 for i in range(-10, 15, 5)],
         },
         fixed_params={'m': FACTOR_THRESHOLD_M, 'n': FACTOR_THRESHOLD_N, 'k': FACTOR_THRESHOLD_K, 'corr_threshold': FACTOR_THRESHOLD_CORR_THRESHOLD, 'stop_loss_pct': FACTOR_THRESHOLD_STOP_LOSS_PCT, 'factor_lower_bound': FACTOR_THRESHOLD_LOWER_BOUND},
         data_map=data_map,

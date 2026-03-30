@@ -52,17 +52,10 @@ def print_asset_pnl(engine):
 
 def handle_update_data():
     """更新行业轮动资产池数据"""
-    print("\n[行业轮动资产池] 正在更新数据...")
-    print("(已是最新的资产将自动跳过)")
-
     assets_to_update = list(SECTOR_ASSET_CODES.items())
     failed_assets = update_all_data(assets_to_update=assets_to_update)
 
     while failed_assets:
-        print(f"\n警告: 以下 {len(failed_assets)} 个资产更新失败:")
-        for name, code in failed_assets:
-            print(f"  - {name} ({code})")
-
         print("\n请选择操作:")
         print("1. 重试失败的资产 (Retry)")
         print("2. 跳过，继续 (Skip)")
@@ -70,16 +63,9 @@ def handle_update_data():
         retry_choice = input("请输入选项 (1-2): ").strip()
 
         if retry_choice == '2':
-            print("跳过失败资产。")
             break
         else:
-            print("\n正在重试...")
             failed_assets = update_all_data(assets_to_update=failed_assets)
-
-    if not failed_assets:
-        print("\n数据更新完成。")
-    else:
-        print(f"\n数据更新完成，但有 {len(failed_assets)} 个资产更新失败。")
 
 def strategy_menu(s):
     """策略子菜单：回测 / 优化 / 信号"""

@@ -4,6 +4,7 @@ import os
 import time
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
+from tqdm import tqdm
 from .config import SECTOR_ASSET_CODES, DATA_DIR
 
 _TRADE_DATES_CACHE = None
@@ -128,11 +129,10 @@ def fetch_data(code, start_date="20160101", end_date=None):
     1. stock_zh_a_hist (东方财富) - 主接口
     2. stock_zh_a_hist_tx (腾讯) - 备用历史接口
     3. fund_etf_category_sina (新浪当日) - 备用 (在 update_all_data 中处理增量更新)
+    返回: (df, source) 元组, source 为 "东方财富" | "腾讯" | None
     """
     if end_date is None:
         end_date = datetime.now().strftime("%Y%m%d")
-
-    print(f"Fetching {code} from {start_date} to {end_date}...")
 
     try:
         df = ak.fund_etf_hist_em(symbol=code, period="daily", start_date=start_date, end_date=end_date, adjust="qfq")
@@ -147,9 +147,9 @@ def fetch_data(code, start_date="20160101", end_date=None):
         df = df.rename(columns=rename_map)
         df['date'] = pd.to_datetime(df['date'])
         df = df.set_index('date').sort_index()
-        return df[["open", "high", "low", "close", "volume"]]
+        return df[["open", "high", "low", "close", "volume"]], "东方财富"
     except Exception as e:
-        print(f"fund_etf_hist_em failed for {code}: {e}")
+        pass
 
     try:
         symbol_tx = _code_to_tx_symbol(code)
@@ -159,11 +159,11 @@ def fetch_data(code, start_date="20160101", end_date=None):
         df = df.rename(columns={"amount": "volume"})
         df['date'] = pd.to_datetime(df['date'])
         df = df.set_index('date').sort_index()
-        return df[["open", "high", "low", "close", "volume"]]
+        return df[["open", "high", "low", "close", "volume"]], "腾讯"
     except Exception as e:
-        print(f"stock_zh_a_hist_tx failed for {code}: {e}")
+        pass
 
-    return None
+    return None, None
 
 def update_all_data(assets_to_update=None):
     """
@@ -188,55 +188,75 @@ def update_all_data(assets_to_update=None):
     if assets_to_update is None:
         assets_to_update = list(SECTOR_ASSET_CODES.items())
 
+    # 分组：需要更新的 vs 已最新的
+    to_update = []
+    already_up_to_date = []
     for name, code in assets_to_update:
         file_path = os.path.join(DATA_DIR, f"{code}.csv")
-
-        # 检查是否需要更新：本地数据最后日期 >= 最近有效交易日则跳过
         if os.path.exists(file_path):
             try:
                 existing_df = pd.read_csv(file_path, index_col='date', parse_dates=True)
                 if not existing_df.empty:
                     last_date = existing_df.index.max()
                     if last_date.date() >= latest_trading_date:
-                        print(f"Skipping {name} ({code}): Already up to date ({last_date.date()})")
+                        already_up_to_date.append((name, code, last_date.date()))
                         continue
-            except Exception as e:
-                print(f"Error reading {file_path}: {e}")
+            except Exception:
+                pass
+        to_update.append((name, code))
 
-        # 全量拉取
-        print(f"Fetching {name} ({code})...")
-        df = fetch_data(code, start_date=default_start_date)
-        if df is not None and not df.empty:
-            last_date = df.index.max().date()
-            if last_date >= latest_trading_date:
-                df.to_csv(file_path)
-                print(f"Saved {name} ({code})")
+    # 进度条更新
+    results = []  # (name, code, source, status)
+
+    if to_update:
+        for name, code in tqdm(to_update, desc="更新数据", ncols=80):
+            file_path = os.path.join(DATA_DIR, f"{code}.csv")
+            df, source = fetch_data(code, start_date=default_start_date)
+            if df is not None and not df.empty:
+                last_date = df.index.max().date()
+                if last_date >= latest_trading_date:
+                    df.to_csv(file_path)
+                    results.append((name, code, source, "成功"))
+                else:
+                    results.append((name, code, source, f"数据过期({last_date})"))
+                    failed_assets.append((name, code))
             else:
-                print(f"Stale data for {name} ({code}): latest={last_date}, expected>={latest_trading_date}")
+                results.append((name, code, source, "失败"))
                 failed_assets.append((name, code))
-        else:
-            print(f"Failed to fetch {name} ({code})")
-            failed_assets.append((name, code))
-
-        # 避免请求过快
-        time.sleep(0.5)
+            time.sleep(0.5)
 
     # 第一轮结束后，如果有失败的资产，尝试备用方案
     if failed_assets:
-        print(f"\n尝试使用 sina 备用接口更新 {len(failed_assets)} 个失败资产...")
         spot_df = fetch_all_fund_spot_sina()
-
         if spot_df is not None:
             still_failed = []
-
             for name, code in failed_assets:
                 if append_spot_to_csv(code, spot_df, latest_trading_date):
-                    print(f"Fallback success: {name} ({code})")
+                    results.append((name, code, "新浪(备用)", "成功"))
                 else:
-                    print(f"Fallback failed: {name} ({code})")
+                    results.append((name, code, "新浪(备用)", "失败"))
                     still_failed.append((name, code))
-
             failed_assets = still_failed
+
+    # 打印汇总报告
+    print("\n" + "=" * 60)
+    print(f"数据更新完成 ({latest_trading_date})")
+    print("=" * 60)
+
+    if already_up_to_date:
+        print(f"\n已最新 ({len(already_up_to_date)} 个):")
+        for name, code, date in already_up_to_date:
+            print(f"  {name} ({code}) - {date}")
+
+    if results:
+        print(f"\n已更新 ({len(results)} 个):")
+        for name, code, source, status in results:
+            print(f"  {name} ({code}) - {source} - {status}")
+
+    if failed_assets:
+        print(f"\n更新失败 ({len(failed_assets)} 个):")
+        for name, code in failed_assets:
+            print(f"  {name} ({code})")
 
     return failed_assets
 
