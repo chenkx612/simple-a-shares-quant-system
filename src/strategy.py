@@ -209,3 +209,16 @@ class FactorThresholdRotationStrategy(SectorRotationStrategy):
         # 固定每只资产仓位为 1/m，不随实际持仓数量变化
         fixed_weight = 1.0 / self.m
         return {asset: fixed_weight for asset in weights}
+
+
+class EWMAFactorThresholdRotationStrategy(FactorThresholdRotationStrategy):
+    """
+    因子下限轮动策略（EWMA版）：使用指数加权移动平均计算因子。
+    因子 = EWM日收益均值 / EWM日收益标准差
+    """
+
+    def _compute_factors(self, prices, daily_rets):
+        """计算 EWMA 版轮动因子：EWM日收益均值 / EWM日收益标准差。"""
+        ewm_mean = daily_rets.ewm(span=self.n, adjust=False).mean()
+        ewm_std = daily_rets.ewm(span=self.n, adjust=False).std()
+        return ewm_mean / ewm_std.replace(0, np.nan)

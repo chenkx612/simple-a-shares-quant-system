@@ -4,10 +4,12 @@ from .config import (
     FACTOR_THRESHOLD_M, FACTOR_THRESHOLD_N, FACTOR_THRESHOLD_K,
     FACTOR_THRESHOLD_CORR_THRESHOLD, FACTOR_THRESHOLD_STOP_LOSS_PCT,
     FACTOR_THRESHOLD_LOWER_BOUND,
+    FACTOR_EWMA_M, FACTOR_EWMA_N, FACTOR_EWMA_K,
+    FACTOR_EWMA_CORR_THRESHOLD, FACTOR_EWMA_STOP_LOSS_PCT, FACTOR_EWMA_LOWER_BOUND,
 )
 from .data_loader import update_all_data, load_all_data
 from .backtest import BacktestEngine
-from .strategy import SectorRotationStrategy, FactorThresholdRotationStrategy
+from .strategy import SectorRotationStrategy, FactorThresholdRotationStrategy, EWMAFactorThresholdRotationStrategy
 
 # Strategy registry for extensibility
 STRATEGY_REGISTRY = {
@@ -28,6 +30,16 @@ STRATEGY_REGISTRY = {
             'corr_threshold': FACTOR_THRESHOLD_CORR_THRESHOLD,
             'stop_loss_pct': FACTOR_THRESHOLD_STOP_LOSS_PCT,
             'factor_lower_bound': FACTOR_THRESHOLD_LOWER_BOUND,
+        }
+    },
+    'ewma_factor_threshold_rotation': {
+        'class': EWMAFactorThresholdRotationStrategy,
+        'asset_codes': SECTOR_ASSET_CODES,
+        'default_params': {
+            'm': FACTOR_EWMA_M, 'n': FACTOR_EWMA_N, 'k': FACTOR_EWMA_K,
+            'corr_threshold': FACTOR_EWMA_CORR_THRESHOLD,
+            'stop_loss_pct': FACTOR_EWMA_STOP_LOSS_PCT,
+            'factor_lower_bound': FACTOR_EWMA_LOWER_BOUND,
         }
     },
 }

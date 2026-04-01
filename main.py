@@ -1,14 +1,16 @@
 import sys
 from src.data_loader import update_all_data, load_all_data
 from src.backtest import BacktestEngine
-from src.optimize import optimize_sector_params, optimize_factor_threshold_params
+from src.optimize import optimize_sector_params, optimize_factor_threshold_params, optimize_ewma_factor_threshold_params
 from src.trading_signal import get_trading_signal
 from src.config import (
     SECTOR_ASSET_CODES, SECTOR_M, SECTOR_N, SECTOR_K, SECTOR_CORR_THRESHOLD, SECTOR_STOP_LOSS_PCT,
     FACTOR_THRESHOLD_M, FACTOR_THRESHOLD_N, FACTOR_THRESHOLD_K,
     FACTOR_THRESHOLD_CORR_THRESHOLD, FACTOR_THRESHOLD_STOP_LOSS_PCT, FACTOR_THRESHOLD_LOWER_BOUND,
+    FACTOR_EWMA_M, FACTOR_EWMA_N, FACTOR_EWMA_K,
+    FACTOR_EWMA_CORR_THRESHOLD, FACTOR_EWMA_STOP_LOSS_PCT, FACTOR_EWMA_LOWER_BOUND,
 )
-from src.strategy import SectorRotationStrategy, FactorThresholdRotationStrategy
+from src.strategy import SectorRotationStrategy, FactorThresholdRotationStrategy, EWMAFactorThresholdRotationStrategy
 
 STRATEGIES = {
     '1': {
@@ -28,6 +30,16 @@ STRATEGIES = {
                                stop_loss_pct=FACTOR_THRESHOLD_STOP_LOSS_PCT,
                                factor_lower_bound=FACTOR_THRESHOLD_LOWER_BOUND),
         'optimize': optimize_factor_threshold_params,
+    },
+    '3': {
+        'name': '行业轮动 - EWMA因子下限 (EWMA Factor Threshold)',
+        'type': 'ewma_factor_threshold_rotation',
+        'class': EWMAFactorThresholdRotationStrategy,
+        'params': lambda: dict(m=FACTOR_EWMA_M, n=FACTOR_EWMA_N, k=FACTOR_EWMA_K,
+                               corr_threshold=FACTOR_EWMA_CORR_THRESHOLD,
+                               stop_loss_pct=FACTOR_EWMA_STOP_LOSS_PCT,
+                               factor_lower_bound=FACTOR_EWMA_LOWER_BOUND),
+        'optimize': optimize_ewma_factor_threshold_params,
     },
 }
 
