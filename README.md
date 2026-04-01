@@ -1,6 +1,6 @@
 # Simple A-Shares Quant System
 
-个人量化投资项目，基于 Python 实现的动量轮动策略量化系统。本项目专注于**行业轮动策略**，提供 Sharpe、Sortino 和因子下限三种策略变体，旨在捕捉行业轮动收益并控制回撤。
+个人量化投资项目，基于 Python 实现的动量轮动策略量化系统。本项目专注于**行业轮动策略**，提供 Sharpe 和因子下限两种策略变体，旨在捕捉行业轮动收益并控制回撤。
 
 ## 核心策略算法
 
@@ -31,21 +31,7 @@
     *   `SECTOR_CORR_THRESHOLD`: 相关性阈值（默认 0.9）
     *   `SECTOR_STOP_LOSS_PCT`: 止损阈值（默认 6%）
 
-### 2. 行业轮动 - Sortino因子 (Return/Downside Volatility)
-
-与 Sharpe 因子策略逻辑相同，但使用 Sortino 比率作为选股因子，只惩罚下行波动，不惩罚上行波动。
-
-*   **选股因子**: **Sortino 因子**
-    *   公式: $Factor = \frac{Return_{N}}{DownsideVolatility_{N}}$
-    *   其中 $DownsideVolatility_{N}$ 仅使用负收益率计算的波动率。
-*   **参数配置** (src/config.py):
-    *   `SORTINO_M`: 持有资产数量（默认 4）
-    *   `SORTINO_N`: 因子计算窗口（默认 25 天）
-    *   `SORTINO_K`: 相关性计算窗口（默认 100 天）
-    *   `SORTINO_CORR_THRESHOLD`: 相关性阈值（默认 0.9）
-    *   `SORTINO_STOP_LOSS_PCT`: 止损阈值（默认 6%）
-
-### 3. 行业轮动 - 因子下限 (Factor Threshold)
+### 2. 行业轮动 - 因子下限 (Factor Threshold)
 
 在 Sharpe 因子策略基础上增加因子下限过滤，只有因子值高于阈值的资产才会被考虑买入，避免在市场整体弱势时持有弱势资产。
 
@@ -119,9 +105,6 @@ python main.py
 # 行业轮动 - Sharpe因子 (默认)
 python -m src.trading_signal
 
-# 行业轮动 - Sortino因子
-python -m src.trading_signal --strategy sortino_rotation
-
 # 行业轮动 - 因子下限
 python -m src.trading_signal --strategy factor_threshold_rotation
 ```
@@ -154,7 +137,7 @@ python -m src.optimize
 .
 ├── main.py                 # 交互式菜单入口
 ├── src/
-│   ├── strategy.py         # 策略核心逻辑 (SectorRotationStrategy, SortinoRotationStrategy, FactorThresholdRotationStrategy)
+│   ├── strategy.py         # 策略核心逻辑 (SectorRotationStrategy, FactorThresholdRotationStrategy)
 │   ├── backtest.py         # 回测引擎 (BacktestEngine)
 │   ├── config.py           # 资产代码映射与策略参数配置
 │   ├── data_loader.py      # 数据加载与更新 (AkShare数据源)

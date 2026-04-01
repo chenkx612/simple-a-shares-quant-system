@@ -71,13 +71,6 @@ SECTOR_K = 100  # 相关性计算窗口
 SECTOR_CORR_THRESHOLD = 0.9  # 相关性阈值
 SECTOR_STOP_LOSS_PCT = 0.1  # 止损阈值
 
-# Sortino轮动策略参数 (Sortino因子: Return/DownsideVol)
-SORTINO_M = 4
-SORTINO_N = 25
-SORTINO_K = 100
-SORTINO_CORR_THRESHOLD = 0.9
-SORTINO_STOP_LOSS_PCT = 0.06
-
 # 因子下限轮动策略参数 (板块轮动 + 因子下限过滤)
 FACTOR_THRESHOLD_M = 5
 FACTOR_THRESHOLD_N = 25

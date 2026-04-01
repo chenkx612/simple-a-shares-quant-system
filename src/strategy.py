@@ -188,19 +188,6 @@ class SectorRotationStrategy(Strategy):
         return {}
 
 
-class SortinoRotationStrategy(SectorRotationStrategy):
-    """
-    行业轮动策略（Sortino因子）：使用 Return / Downside Volatility 作为轮动因子，
-    只惩罚下行波动，不惩罚上行波动。
-    """
-
-    def _compute_factors(self, prices, daily_rets):
-        rolling_return = prices / prices.shift(self.n) - 1
-        downside_rets = daily_rets.clip(upper=0)
-        rolling_downside_vol = downside_rets.rolling(self.n).std()
-        return rolling_return / rolling_downside_vol.replace(0, np.nan)
-
-
 class FactorThresholdRotationStrategy(SectorRotationStrategy):
     """
     行业轮动策略（因子下限）：在板块轮动基础上增加因子下限过滤。
