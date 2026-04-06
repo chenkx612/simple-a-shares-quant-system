@@ -26,32 +26,32 @@ def get_latest_valid_trading_date():
         if _TRADE_DATES_CACHE is None:
              trade_df = ak.tool_trade_date_hist_sina()
              _TRADE_DATES_CACHE = pd.to_datetime(trade_df['trade_date']).dt.date.tolist()
-        
+
         trade_dates = _TRADE_DATES_CACHE
         if not trade_dates:
-            return None
-            
+            raise ValueError("empty trade dates")
+
         now = datetime.now()
         today = now.date()
-        
+
         # 找到 <= today 的交易日
         valid_dates = [d for d in trade_dates if d <= today]
         if not valid_dates:
-            return None
-        
+            raise ValueError("no valid dates")
+
         latest_date = valid_dates[-1]
-        
+
         # 如果最近交易日是今天，且现在还没收盘（< 15:00），则认为今天的数据还没准备好
         if latest_date == today and now.hour < 15:
             if len(valid_dates) > 1:
                 return valid_dates[-2]
             else:
-                return None
-                
+                raise ValueError("only today available before 15:00")
+
         return latest_date
-    except Exception as e:
-        print(f"Warning: Failed to fetch trade dates: {e}")
-        return None
+    except Exception:
+        date_str = input("获取交易日失败，请手动输入最近一个交易日 (YYYYMMDD): ").strip()
+        return datetime.strptime(date_str, "%Y%m%d").date()
 
 def fetch_all_fund_spot_sina():
     """

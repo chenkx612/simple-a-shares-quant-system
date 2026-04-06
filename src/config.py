@@ -19,22 +19,24 @@ SECTOR_ASSET_CODES  = {
     
     # 行业
     "bank": "512800",          # 银行ETF
-    "bean": "159985",          # 豆粕 (农产品，零相关)
     "grid": "159326",          # 电网设备 (具有公用事业属性，与大盘走势往往不同步)
     "gold": "518880",          # 黄金ETF
     'telecom': '515880',       # 通信ETF
     'ai': '159819',            # 人工智能ETF
     'satellite': '159206',     # 卫星ETF
     'software': '159852',      # 软件ETF
-    'big_data': '515400',      # 大数据ETF
     'hksec': '513090',         # 香港证券ETF
     'sp_oil_gas': '159518',    # 标普油气ETF
+    'ener_chem': '159981',     # 能源化工ETF
+    'biotech': '159502', # 标普生物科技ETF
 
     # 备选
-    # 'japen': '513880', # 日经225ETF
-    # 'hk_medicine': '159570', # 港股通创新药ETF
+    # "bean": "159985",          # 豆粕 (农产品，零相关)
+    # 'bond': '511380', # 可转债ETF
     # 'chip': '588200', # 芯片ETF
-    # '30y_bond': '511090', # 30年国债ETF
+    # 'consumer': '159928', # 消费ETF
+    # "dividend": "510880",  # 红利ETF
+    # 'hk_medicine': '159570', # 港股通创新药ETF
     # 'semiconductor': '159516', # 半导体设备ETF
     # 'metals': '516650', # 有色金属ETF
     # 'food': '159698', # 粮食ETF
@@ -43,13 +45,10 @@ SECTOR_ASSET_CODES  = {
     # 'coal': '515220', # 煤炭ETF
     # 'battery': '159755', # 电池ETF
     # 'tourism': '159766',  # 旅游ETF
-    # 'hk_consumer': '513070', # 港股通消费ETF
     # 'pv': '515790', # 光伏ETF
     # "liquor": "512690",        # 酒 ETF
     # 'cyb50': '159949', # 创业板50ETF
-    # 'energy_chemical': '159981', # 能源化工ETF
     # 'insurance': '512070', # 证券保险ETF
-    # "dividend": "510880",  # 红利ETF
     # 'infrastructure': '516970', # 基建ETF
     # 'chemical': '159870', # 化工ETF
     # 'sp500': '513500', # 标普500
@@ -62,6 +61,9 @@ SECTOR_ASSET_CODES  = {
     # 'fishing': '159865', # 养殖ETF
     # 'internet': '513050', # 中概互联网ETF
     # 'kcb': '159781', # 科创创业ETF
+    # '30y_bond': '511090', # 30年国债ETF
+    # 'japen': '513880', # 日经225ETF
+    # 'big_data': '515400',      # 大数据ETF
 }
 
 # 行业轮动策略参数 (Sharpe因子: Return/Vol)
@@ -74,7 +76,7 @@ SECTOR_STOP_LOSS_PCT = 0.1  # 止损阈值
 # 因子下限轮动策略参数 (板块轮动 + 因子下限过滤)
 FACTOR_THRESHOLD_M = 5
 FACTOR_THRESHOLD_N = 25
-FACTOR_THRESHOLD_LOWER_BOUND = 0.5  # 因子下限，低于此值的资产不买入
+FACTOR_THRESHOLD_LOWER_BOUND = 0.0  # 因子下限，低于此值的资产不买入
 FACTOR_THRESHOLD_K = 100
 FACTOR_THRESHOLD_CORR_THRESHOLD = 0.9
 FACTOR_THRESHOLD_STOP_LOSS_PCT = 0.1

@@ -175,6 +175,8 @@ def optimize_factor_threshold_params():
             'm': range(4, 7),
             'n': range(15, 40, 5),
             'factor_lower_bound': [i / 10 for i in range(-10, 15, 5)],
+            # 'k': [20, 40, 60, 100],
+            # 'corr_threshold': [0.7, 0.8, 0.9],
         },
         fixed_params={'m': FACTOR_THRESHOLD_M, 'n': FACTOR_THRESHOLD_N, 'k': FACTOR_THRESHOLD_K, 'corr_threshold': FACTOR_THRESHOLD_CORR_THRESHOLD, 'stop_loss_pct': FACTOR_THRESHOLD_STOP_LOSS_PCT, 'factor_lower_bound': FACTOR_THRESHOLD_LOWER_BOUND},
         data_map=data_map,
