@@ -29,7 +29,7 @@ SECTOR_ASSET_CODES  = {
     'sp_oil_gas': '159518',    # 标普油气ETF
     'ener_chem': '159981',     # 能源化工ETF
     'biotech': '159502',       # 标普生物科技ETF
-    'growth': '159259', # 成长ETF
+    'growth': '159259',        # 成长ETF
 
     # 备选
     # 'bay_area': '512970', # 大湾区ETF
