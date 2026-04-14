@@ -28,36 +28,41 @@ SECTOR_ASSET_CODES  = {
     'hksec': '513090',         # 香港证券ETF
     'sp_oil_gas': '159518',    # 标普油气ETF
     'ener_chem': '159981',     # 能源化工ETF
-    'biotech': '159502', # 标普生物科技ETF
+    'biotech': '159502',       # 标普生物科技ETF
+    'growth': '159259', # 成长ETF
 
     # 备选
+    # 'bay_area': '512970', # 大湾区ETF
+    # 'industrial_software': '159108', # 工业软件ETF
+    # 'battery': '159755', # 电池ETF
+    # 'pv': '515790', # 光伏ETF
     # "bean": "159985",          # 豆粕 (农产品，零相关)
-    # 'bond': '511380', # 可转债ETF
-    # 'chip': '588200', # 芯片ETF
-    # 'consumer': '159928', # 消费ETF
-    # "dividend": "510880",  # 红利ETF
-    # 'hk_medicine': '159570', # 港股通创新药ETF
+    # 'robot': '159530', # 机器人ETF
+    # 'new_energy_car': '515700', # 新能源车ETF
     # 'semiconductor': '159516', # 半导体设备ETF
+    # "hk_dividend": "513630",  # 港股低波红利ETF
     # 'metals': '516650', # 有色金属ETF
+    # 'cloud': '159273', # 云计算ETF
+    # 'chemical': '159870', # 化工ETF
+    # 'chip': '588200', # 芯片ETF
+    # 'coal': '515220', # 煤炭ETF
+    # 'bond': '511380', # 可转债ETF
+    # 'consumer': '159928', # 消费ETF
+    # 'hk_medicine': '159570', # 港股通创新药ETF
     # 'food': '159698', # 粮食ETF
     # 'medicine': '159992', # 创新药ETF
     # 'rare_metal': '562800', # 稀有金属ETF
-    # 'coal': '515220', # 煤炭ETF
-    # 'battery': '159755', # 电池ETF
     # 'tourism': '159766',  # 旅游ETF
-    # 'pv': '515790', # 光伏ETF
     # "liquor": "512690",        # 酒 ETF
     # 'cyb50': '159949', # 创业板50ETF
     # 'insurance': '512070', # 证券保险ETF
     # 'infrastructure': '516970', # 基建ETF
-    # 'chemical': '159870', # 化工ETF
     # 'sp500': '513500', # 标普500
     # 'game': '159869', # 游戏ETF
     # 'media': '512980', # 传媒ETF
     # 'rare_earth': '516150', # 稀土ETF
     # 'military': '512710', # 军工ETF
     # 'industrial_machine': '159667', # 工业母机ETF
-    # 'semiconductor': '513310', # 半导体ETF
     # 'fishing': '159865', # 养殖ETF
     # 'internet': '513050', # 中概互联网ETF
     # 'kcb': '159781', # 科创创业ETF
