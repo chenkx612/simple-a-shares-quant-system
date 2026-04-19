@@ -53,68 +53,6 @@ def get_latest_valid_trading_date():
         date_str = input("获取交易日失败，请手动输入最近一个交易日 (YYYYMMDD): ").strip()
         return datetime.strptime(date_str, "%Y%m%d").date()
 
-def fetch_all_fund_spot_sina():
-    """
-    使用 sina 接口获取全市场 ETF/LOF 当日行情
-    返回: DataFrame, 以代码为索引（纯数字）, 包含 open/high/low/close/volume
-    """
-    try:
-        etf_df = ak.fund_etf_category_sina("ETF基金")
-        lof_df = ak.fund_etf_category_sina("LOF基金")
-        combined = pd.concat([etf_df, lof_df], ignore_index=True)
-
-        # 映射列名
-        combined = combined.rename(columns={
-            "今开": "open",
-            "最高": "high",
-            "最低": "low",
-            "最新价": "close",
-            "成交量": "volume",
-            "代码": "code"
-        })
-        # 去除代码前缀 (sh/sz)，转为纯数字格式
-        combined["code"] = combined["code"].str.replace(r"^(sh|sz)", "", regex=True)
-        combined = combined.set_index("code")
-        return combined[["open", "high", "low", "close", "volume"]]
-    except Exception as e:
-        print(f"Error fetching spot data from sina: {e}")
-        return None
-
-
-def append_spot_to_csv(code, spot_df, trading_date):
-    """
-    将 spot_df 中指定 code 的当日数据追加到 CSV
-    返回: True 成功, False 失败
-    """
-    if code not in spot_df.index:
-        return False
-
-    file_path = os.path.join(DATA_DIR, f"{code}.csv")
-    if not os.path.exists(file_path):
-        return False  # 没有历史数据，无法增量更新
-
-    existing_df = pd.read_csv(file_path, index_col='date', parse_dates=True)
-
-    # 检查是否已有该日期数据
-    if pd.Timestamp(trading_date) in existing_df.index:
-        return True  # 已存在，视为成功
-
-    # 构造新行
-    row = spot_df.loc[code]
-    new_row = pd.DataFrame({
-        "open": [row["open"]],
-        "high": [row["high"]],
-        "low": [row["low"]],
-        "close": [row["close"]],
-        "volume": [row["volume"]]
-    }, index=pd.DatetimeIndex([trading_date], name="date"))
-
-    # 追加并保存
-    updated_df = pd.concat([existing_df, new_row]).sort_index()
-    updated_df.to_csv(file_path)
-    return True
-
-
 def _code_to_tx_symbol(code):
     """将纯数字代码转为腾讯接口所需的带市场前缀格式 (如 'sh510050')"""
     if code.startswith(('5', '6', '9')):
@@ -125,10 +63,9 @@ def _code_to_tx_symbol(code):
 def fetch_data(code, start_date="20160101", end_date=None):
     """
     获取单个ETF/LOF的日线数据 (前复权)
-    三级备用机制:
+    两级备用机制:
     1. stock_zh_a_hist (东方财富) - 主接口
     2. stock_zh_a_hist_tx (腾讯) - 备用历史接口
-    3. fund_etf_category_sina (新浪当日) - 备用 (在 update_all_data 中处理增量更新)
     返回: (df, source) 元组, source 为 "东方财富" | "腾讯" | None
     """
     if end_date is None:
@@ -224,19 +161,6 @@ def update_all_data(assets_to_update=None):
                 results.append((name, code, source, "失败"))
                 failed_assets.append((name, code))
             time.sleep(0.5)
-
-    # 第一轮结束后，如果有失败的资产，尝试备用方案
-    if failed_assets:
-        spot_df = fetch_all_fund_spot_sina()
-        if spot_df is not None:
-            still_failed = []
-            for name, code in failed_assets:
-                if append_spot_to_csv(code, spot_df, latest_trading_date):
-                    results.append((name, code, "新浪(备用)", "成功"))
-                else:
-                    results.append((name, code, "新浪(备用)", "失败"))
-                    still_failed.append((name, code))
-            failed_assets = still_failed
 
     # 打印汇总报告
     print("\n" + "=" * 60)
