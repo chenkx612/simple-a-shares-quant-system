@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from tqdm import tqdm
-from .config import SECTOR_ASSET_CODES, DATA_DIR
+from .config import SECTOR_ASSET_CODES, DATA_DIR, START_DATE
 
 _TRADE_DATES_CACHE = None
 
@@ -119,7 +119,13 @@ def update_all_data(assets_to_update=None):
         latest_trading_date = datetime.now().date()
 
     failed_assets = []
-    default_start_date = "20160101"
+
+    # 根据回测起始日期计算数据拉取起点（往前推一年，避免因子计算窗口数据不足）
+    try:
+        start_dt = pd.Timestamp(START_DATE) - pd.DateOffset(years=1)
+        data_fetch_start_date = start_dt.strftime("%Y%m%d")
+    except Exception:
+        data_fetch_start_date = "20190701"
 
     # 确定要更新的资产
     if assets_to_update is None:
@@ -148,7 +154,7 @@ def update_all_data(assets_to_update=None):
     if to_update:
         for name, code in tqdm(to_update, desc="更新数据", ncols=80):
             file_path = os.path.join(DATA_DIR, f"{code}.csv")
-            df, source = fetch_data(code, start_date=default_start_date)
+            df, source = fetch_data(code, start_date=data_fetch_start_date)
             if df is not None and not df.empty:
                 last_date = df.index.max().date()
                 if last_date >= latest_trading_date:
