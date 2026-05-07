@@ -31,31 +31,40 @@ SECTOR_ASSET_CODES  = {
     'biotech': '159502',       # 标普生物科技ETF
     'growth': '159259',        # 成长ETF
     'cloud': '159273',         # 云计算ETF
+    'hk_tech30': '159636',     # 港股通科技30ETF
 
     # 备选
-    # 'kcb': '159781', # 科创创业ETF
+    # 'robot': '562500', # 机器人ETF
+    # 'semiconductor': '513310', # 中韩半导体ETF
+    # 'chip': '159995', # 芯片ETF
+    # 'kc50': '588080', # 科创50ETF
+    # 'kc_chip': '588200', # 科创芯片ETF
+    # 'kc_ai': '589010', # 科创人工智能ETF
+    # 'health': '512170', # 医疗ETF
+    # 'dividend': '510880', # 红利ETF
+    # 'coal': '515220', # 煤炭ETF
+    # "hk_dividend": "513630",  # 港股低波红利ETF
+    # 'medicine': '159992', # 创新药ETF
+    # 'semiconductor': '159516', # 半导体设备ETF
+    # 'kc_info': '588770', # 科创信息ETF
+    # 'chemical': '159870', # 化工ETF
+    # 'rare_metal': '159608', # 稀有金属ETF
+    # 'battery': '159755', # 电池ETF
+    # 'military': '512660', # 军工ETF
+    # 'space': '159241', # 航空航天ETF
     # 'z1000': '512100', # 中证1000ETF
     # 'new_energy': '588830', # 科创新能源ETF
     # 'hk_internet': '159792', # 港股通互联网ETF
-    # 'battery': '159755', # 电池ETF
     # 'hk_medicine': '159570', # 港股通创新药ETF
-    # 'medicine': '159992', # 创新药ETF
     # 'us50': '513850', # 美国50ETF
     # 'bay_area': '512970', # 大湾区ETF
     # 'industrial_software': '159108', # 工业软件ETF
     # 'pv': '515790', # 光伏ETF
     # "bean": "159985",          # 豆粕 (农产品，零相关)
-    # 'robot': '159530', # 机器人ETF
-    # 'semiconductor': '159516', # 半导体设备ETF
-    # "hk_dividend": "513630",  # 港股低波红利ETF
     # 'metals': '516650', # 有色金属ETF
-    # 'chemical': '159870', # 化工ETF
-    # 'chip': '588200', # 芯片ETF
-    # 'coal': '515220', # 煤炭ETF
     # 'bond': '511380', # 可转债ETF
     # 'consumer': '159928', # 消费ETF
     # 'food': '159698', # 粮食ETF
-    # 'rare_metal': '562800', # 稀有金属ETF
     # 'tourism': '159766',  # 旅游ETF
     # "liquor": "512690",        # 酒 ETF
     # 'cyb50': '159949', # 创业板50ETF
@@ -65,7 +74,6 @@ SECTOR_ASSET_CODES  = {
     # 'game': '159869', # 游戏ETF
     # 'media': '512980', # 传媒ETF
     # 'rare_earth': '516150', # 稀土ETF
-    # 'military': '512710', # 军工ETF
     # 'industrial_machine': '159667', # 工业母机ETF
     # 'fishing': '159865', # 养殖ETF
     # 'internet': '513050', # 中概互联网ETF
